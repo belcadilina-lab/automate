@@ -1,5 +1,6 @@
 digraph G {
     init [shape=point]
+    fin [shape=point]
     init -> 0;
     init -> 1;
     0 -> 2 [label="C"];
