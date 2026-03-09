@@ -395,5 +395,6 @@ int main(){
             default : printf("Entrer un choix valide s'il vous plait!\n");
         }
 	}while(output !=0);
+    free(&a);
 	return 0;
 }
