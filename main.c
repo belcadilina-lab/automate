@@ -326,7 +326,7 @@ void SaveAcceptedWords(Automate *A){
 }
 int menu(void){
 		int choice;
-        printf("\033[1mNB : Dans le cas des données preexistantes, charger le fichier ajoute les données sans ecraser ceux de la structure.\033[0m");
+        printf("\033[1mNB : Dans le cas des données preexistantes, charger le fichier ecrase ceux de la structure.\033[0m");
 		printf("\n-----------AUTOMATE--------\n");
         printf("1. Lire l'automate depuis graph.dot .  \n2. Afficher les informations de l'automate.  \n");
         printf("3. Generer un fichier.dot .  \n4. Afficher l'etat avec le plus grand nombre des transitions.  \n");

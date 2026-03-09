@@ -1,16 +1,7 @@
 digraph G {
 init [shape=point];
 fin [shape=point];
-init -> 0;
-0 -> 0 [label="b"];
-0 -> 1 [label="a"];
-1 -> 0 [label="b"];
-1 -> 2 [label="a"];
-2 -> 2 [label="a"];
-2 -> 3 [label="b"];
-3 -> 0 [label="b"];
-3 -> 4 [label="a"];
-4 -> 4 [label="a"];
-4 -> 4 [label="b"];
-4 -> fin;
+init -> 7;
+7 -> 8 [label="m"];
+8 -> fin;
 }
