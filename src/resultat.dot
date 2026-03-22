@@ -1,0 +1,17 @@
+digraph G {
+init [shape=point];
+fin [shape=point];
+init -> qin;
+qin -> q0 [label="𝜖"] ;
+qin -> q0p [label="𝜖"] ;
+q0 -> 0 [label="𝜖"];
+0 -> 1 [label="a"] ;
+0 -> 3 [label="b"] ;
+q0p -> 8 [label="𝜖"];
+8 -> 9 [label="a"] ;
+9 -> 5 [label="a"] ;
+3 -> qf [label="𝜖"];
+5 -> qfp [label="𝜖"];
+qf -> qfin [label="𝜖"];
+qfp -> qfin [label="𝜖"];
+}

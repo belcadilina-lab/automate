@@ -1,0 +1,8 @@
+digraph G {
+    init [shape=point];
+    fin [shape=point];
+    init -> 8;
+    8 -> 9 [label="a"];
+    9 -> 5 [label="a"];
+    5 -> fin;
+}
