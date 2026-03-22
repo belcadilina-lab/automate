@@ -20,6 +20,7 @@ typedef struct Automate{
     char etat_finaux[10];
 	int finc;//nbr des etats finaux
 }Automate;
+void supprimerEpsilons(Automate *A);
 void checkFile(FILE* test)
 {
     if(test == NULL) perror("erreur ouverture");
@@ -115,11 +116,11 @@ void Union(void)
     fprintf(W, "digraph G {\n");
     fprintf(W, "init [shape=point];\n");
     fprintf(W, "fin [shape=point];\n");
-    fprintf(W, "init -> qin;\n");
-    fprintf(W, "qin -> q0 [label=\"𝜖\"] ;\n");
-    fprintf(W, "qin -> q0p [label=\"𝜖\"] ;\n");    
+    fprintf(W, "init -> ∂;\n");
+    fprintf(W, "∂ -> θ [label=\"𝜖\"] ;\n");
+    fprintf(W, "∂ -> η [label=\"𝜖\"] ;\n");    
     for(int i = 0 ; i< autom1.inic ; i++)
-    fprintf(W, "q0 -> %c [label=\"𝜖\"];\n",autom1.etat_initiaux[i]);
+    fprintf(W, "θ -> %c [label=\"𝜖\"];\n",autom1.etat_initiaux[i]);
 
     for(int k = 0; k<autom1.nbr_trans ; k++)
     {
@@ -127,7 +128,7 @@ void Union(void)
     }
 
     for(int i = 0 ; i< autom2.inic ; i++)
-    fprintf(W, "q0p -> %c [label=\"𝜖\"];\n",autom2.etat_initiaux[i]);
+    fprintf(W, "η -> %c [label=\"𝜖\"];\n",autom2.etat_initiaux[i]);
 
     for(int k = 0; k<autom2.nbr_trans ; k++)
     {
@@ -137,15 +138,16 @@ void Union(void)
     //etats finaux
 
     for(int i = 0 ; i< autom1.finc ; i++)
-    fprintf(W, "%c -> qf [label=\"𝜖\"];\n",autom1.etat_finaux[i]);
+    fprintf(W, "%c -> λ [label=\"𝜖\"];\n",autom1.etat_finaux[i]);
 
     
     for(int i = 0 ; i< autom2.finc ; i++)
-    fprintf(W, "%c -> qfp [label=\"𝜖\"];\n",autom2.etat_finaux[i]);
+    fprintf(W, "%c -> μ [label=\"𝜖\"];\n",autom2.etat_finaux[i]);
 
 
-    fprintf(W, "qf -> qfin [label=\"𝜖\"];\n");
-    fprintf(W, "qfp -> qfin [label=\"𝜖\"];\n");   
+    fprintf(W, "λ -> ρ [label=\"𝜖\"];\n");
+    fprintf(W, "μ -> ρ [label=\"𝜖\"];\n");   
+    fprintf(W, "ρ -> fin;\n");   
 
 
 
@@ -348,6 +350,7 @@ bool Exists(Automate* autom, char * str){
         for(int x = 0; x<tailleSuivant; x++) courant[x] = suivant[x];
         tailleCourant = tailleSuivant;
     }
+
     for(int s= 0; s<tailleCourant ; s++)
     {
         if(rechercherEtatFinale(autom,courant[s])) return true;
