@@ -318,6 +318,7 @@ bool rechercherEtatFinale(Automate *protocol, char etatChar){
 }
 //changement pour travailler sur NFA
 bool Exists(Automate* autom, char * str){
+    supprimerEpsilons(autom);
     char courant[20], suivant[20];
     int tailleCourant = 0, tailleSuivant = 0;
 
