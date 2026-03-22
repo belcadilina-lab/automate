@@ -150,9 +150,9 @@ void Union(void)
 
 
     fprintf(W, "}");
-fclose(U);
-fclose(V);
-fclose(W);
+    fclose(U);
+    fclose(V);
+    fclose(W);
 
 
 
@@ -392,17 +392,7 @@ void SaveAcceptedWords(Automate *A){
     fclose(fptr);
     fclose(ftxt);
 }
-int menu(void){
-		int choice;
-		printf("\n-----------AUTOMATE--------\n");
-        printf("1. Lire l'automate depuis graph.dot .  \n2. Afficher les informations de l'automate.  \n");
-        printf("3. Generer un fichier.dot .  \n4. Afficher l'etat avec le plus grand nombre des transitions.  \n");
-        printf("5. Afficher les etat avec transition etiquete .  \n6. Tester un mot  \n7. extraire Mots accepter ds un fichier.\n");
-        printf("8.supprimer les epsilons dans l'automate.\n");
-        printf("0. Quitter le programme.\nEffectuer un choix: ");
-        scanf("%d",&choice);
-		return choice;
-}
+
 //fct verifier qu'un transition n'existe deja dans le tableau des transition
 bool transitionExiste(Transition *tab, int nbr, char dep, char arriv, char lettre) {
     for (int i = 0; i < nbr; i++) {
@@ -492,6 +482,121 @@ void supprimerEpsilons(Automate *A) {
     }
     printf("Les transitions epsilon ont ete supprimees avec succes.\nAfficher l'automate pour y verifier.\n");
 }
+// Une pile pour retenir le début et la fin des morceaux d'automate
+char pile_debut[50];
+char pile_fin[50];
+int sommet = -1;
+
+void push(char debut, char fin) {
+    sommet++;
+    pile_debut[sommet] = debut;
+    pile_fin[sommet] = fin;
+}
+
+char nouvelEtat(Automate *a) {
+    char nom_etat = 'A' + a->nbr_etat; 
+    a->etats[a->nbr_etat++] = nom_etat;
+    return nom_etat;
+}
+
+void ajouterTransition(Automate *a, char dep, char arriv, char lettre) {
+    a->transitions[a->nbr_trans].etat_dep = dep;
+    a->transitions[a->nbr_trans].etat_arriv = arriv;
+    a->transitions[a->nbr_trans].lettre = lettre;
+    a->nbr_trans++;
+    if (lettre != 'e' && !rechercherAlphabet(a, lettre)) {
+        a->Alphabet[a->nbr_alph++] = lettre;
+    }
+}
+
+// --- TES NOUVELLES FONCTIONS SEPAREES EN MEMOIRE ---
+
+void faireConcatenation(Automate *a) {
+    char fin2 = pile_fin[sommet];     char deb2 = pile_debut[sommet]; sommet--;
+    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
+    
+    // On relie la fin du premier au début du deuxième avec epsilon
+    ajouterTransition(a, fin1, deb2, 'e'); 
+    push(deb1, fin2); // Le nouveau bloc va du début du 1er à la fin du 2eme
+}
+
+void faireUnion(Automate *a) {
+    char fin2 = pile_fin[sommet];     char deb2 = pile_debut[sommet]; sommet--;
+    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
+    
+    char nouv_deb = nouvelEtat(a);
+    char nouv_fin = nouvelEtat(a);
+    
+    ajouterTransition(a, nouv_deb, deb1, 'e');
+    ajouterTransition(a, nouv_deb, deb2, 'e');
+    ajouterTransition(a, fin1, nouv_fin, 'e');
+    ajouterTransition(a, fin2, nouv_fin, 'e');
+    
+    push(nouv_deb, nouv_fin);
+}
+
+void faireEtoile(Automate *a) {
+    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
+    
+    char nouv_deb = nouvelEtat(a);
+    char nouv_fin = nouvelEtat(a);
+    
+    ajouterTransition(a, nouv_deb, deb1, 'e'); // Entrer
+    ajouterTransition(a, fin1, nouv_fin, 'e'); // Sortir
+    ajouterTransition(a, nouv_deb, nouv_fin, 'e'); // Sauter (mot vide)
+    ajouterTransition(a, fin1, deb1, 'e'); // Boucler
+    
+    push(nouv_deb, nouv_fin);
+}
+
+void faireLettre(Automate *a, char lettre) {
+    char deb = nouvelEtat(a);
+    char fin = nouvelEtat(a);
+    ajouterTransition(a, deb, fin, lettre);
+    push(deb, fin);
+}
+void regexToAutomate(char *postfix, Automate *a) {
+    // On initialise l'automate vide
+    a->nbr_etat = 0; a->nbr_trans = 0; a->inic = 0; a->finc = 0; a->nbr_alph = 0;
+    sommet = -1; 
+
+    // On parcourt l'expression symbole par symbole
+    for (int i = 0; i < strlen(postfix); i++) {
+        char symbole = postfix[i];
+
+        if (symbole == '.') { 
+            faireConcatenation(a);
+        } 
+        else if (symbole == '|') { 
+            faireUnion(a);
+        } 
+        else if (symbole == '*') { 
+            faireEtoile(a);
+        } 
+        else { 
+            faireLettre(a, symbole);
+        }
+    }
+
+    // On définit l'état initial et final globaux
+    a->etat_initiaux[a->inic++] = pile_debut[0];
+    a->etat_finaux[a->finc++] = pile_fin[0];
+    
+    printf("Automate genere avec succes depuis l'expression reguliere !\n");
+}
+int menu(void){
+		int choice;
+		printf("\n-----------AUTOMATE--------\n");
+        printf("1. Lire l'automate depuis graph.dot .  \n2. Afficher les informations de l'automate.  \n");
+        printf("3. Generer un fichier.dot .  \n4. Afficher l'etat avec le plus grand nombre des transitions.  \n");
+        printf("5. Afficher les etat avec transition etiquete .  \n6. Tester un mot  \n7. extraire Mots accepter ds un fichier.\n");
+        printf("8. supprimer les epsilons dans l'automate.\n");
+        printf("9. union de 2 automates.\n");
+        printf("10. Generer un automate a partir d'une expression reguliere.\n");
+        printf("0. Quitter le programme.\nEffectuer un choix: ");
+        scanf("%d",&choice);
+		return choice;
+}
 int main(){
 	Automate a;  
 	int output;
@@ -553,6 +658,23 @@ int main(){
             }
             case 9:{
                 Union();
+                break;
+            }
+            case 10: {
+                char regex[50];
+                printf("\n--- GENERATION DEPUIS REGEX ---\n");
+                printf("ATTENTION: Entrez l'expression en notation POSTFIXE.\n");
+                printf("  => Le point '.' sert a concatener.\n");
+                printf("  => Le pipe '|' sert pour l'union (OU).\n");
+                printf("  => L'etoile '*' sert pour la fermeture de Kleene.\n");
+                printf("Exemple pour (a|b)*c : ab|*c.\n");
+                printf("Entrez votre regex : ");
+                
+                scanf("%s", regex);
+                regexToAutomate(regex, &a); // Remplace l'automate actuel 'a'
+                
+                // Optionnel : Sauvegarder automatiquement ce nouvel automate
+                sauvgarder(a);
                 break;
             }
             case 0 : printf("Fin du programme\n"); break;

@@ -1,7 +1,19 @@
 digraph G {
 init [shape=point];
 fin [shape=point];
-init -> 7;
-7 -> 8 [label="m"];
-8 -> fin;
+init -> E;
+A -> B [label="("];
+C -> D [label="a"];
+E -> A [label="e"];
+E -> C [label="e"];
+B -> F [label="e"];
+D -> F [label="e"];
+G -> H [label="b"];
+I -> J [label=")"];
+K -> I [label="e"];
+J -> L [label="e"];
+K -> L [label="e"];
+J -> I [label="e"];
+M -> N [label="c"];
+F -> fin;
 }
