@@ -110,16 +110,14 @@ void Union(void)
     checkFile(W);
     readDot(&autom1,"src/automate1.dot");
     readDot(&autom2,"src/automate2.dot");
-
-
     fprintf(W, "digraph G {\n");
     fprintf(W, "init [shape=point];\n");
     fprintf(W, "fin [shape=point];\n");
-    fprintf(W, "init -> qin;\n");
-    fprintf(W, "qin -> q0 [label=\"𝜖\"] ;\n");
-    fprintf(W, "qin -> q0p [label=\"𝜖\"] ;\n");    
+    fprintf(W, "init -> q;\n");
+    fprintf(W, "q -> i [label=\"3\"] ;\n");
+    fprintf(W, "q -> I [label=\"3\"] ;\n");    
     for(int i = 0 ; i< autom1.inic ; i++)
-    fprintf(W, "q0 -> %c [label=\"𝜖\"];\n",autom1.etat_initiaux[i]);
+    fprintf(W, "i -> %c [label=\"3\"];\n",autom1.etat_initiaux[i]);
 
     for(int k = 0; k<autom1.nbr_trans ; k++)
     {
@@ -127,36 +125,32 @@ void Union(void)
     }
 
     for(int i = 0 ; i< autom2.inic ; i++)
-    fprintf(W, "q0p -> %c [label=\"𝜖\"];\n",autom2.etat_initiaux[i]);
+    fprintf(W, "I -> %c [label=\"3\"];\n",autom2.etat_initiaux[i]);
 
     for(int k = 0; k<autom2.nbr_trans ; k++)
     {
         fprintf(W, "%c -> %c [label=\"%c\"] ;\n",autom2.transitions[k].etat_dep,autom2.transitions[k].etat_arriv,autom2.transitions[k].lettre);    
     }
-
     //etats finaux
 
     for(int i = 0 ; i< autom1.finc ; i++)
-    fprintf(W, "%c -> qf [label=\"𝜖\"];\n",autom1.etat_finaux[i]);
+    fprintf(W, "%c -> f [label=\"3\"];\n",autom1.etat_finaux[i]);
 
-    
+
     for(int i = 0 ; i< autom2.finc ; i++)
-    fprintf(W, "%c -> qfp [label=\"𝜖\"];\n",autom2.etat_finaux[i]);
+    fprintf(W, "%c -> F [label=\"3\"];\n",autom2.etat_finaux[i]);
 
-
-    fprintf(W, "qf -> qfin [label=\"𝜖\"];\n");
-    fprintf(W, "qfp -> qfin [label=\"𝜖\"];\n");   
+  
+    fprintf(W, "f -> p [label=\"3\"];\n");
+    fprintf(W, "F -> p [label=\"3\"];\n");   
+    fprintf(W, "p -> fin;\n");   
 
 
 
     fprintf(W, "}");
-    fclose(U);
-    fclose(V);
-    fclose(W);
-
-
-
-
+fclose(U);
+fclose(V);
+fclose(W);
 }
 void automateShow(Automate protocol){
 	int i;
