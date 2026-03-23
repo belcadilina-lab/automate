@@ -431,7 +431,90 @@ void calculFermetureEpsilon(Automate *A, char etat, char *fermeture, int *taille
         }
     }
 }
+//fct permet supprimer les etats inaccessible
+void supprimerEtatsInaccessibles(Automate *A) {
+    char accessibles[100];
+    int nbr_acc = 0;
+    for (int i = 0; i < A->inic; i++) {
+        accessibles[nbr_acc] = A->etat_initiaux[i];
+        nbr_acc++;
+    }
+    
+    bool nouveau_trouve;//trouver tous les etats accessibles
+    do {
+        nouveau_trouve = false;
+        for (int i = 0; i < nbr_acc; i++) {
+            char etat_courant = accessibles[i];
 
+            for (int j = 0; j < A->nbr_trans; j++) {
+                if (A->transitions[j].etat_dep == etat_courant) {
+                    char etat_dest = A->transitions[j].etat_arriv;
+                    
+                    bool existe = false;//verifier que etat_dest n'est pas deja accessible
+                    for (int k = 0; k < nbr_acc; k++) {
+                        if (accessibles[k] == etat_dest) {
+                            existe = true;
+                            break;
+                        }
+                    }
+                    if (!existe) {
+                        accessibles[nbr_acc] = etat_dest;
+                        nbr_acc++;
+                        nouveau_trouve = true;
+                    }
+                }
+            }
+        }
+    } while (nouveau_trouve);
+
+    for (int i = 0; i < nbr_acc; i++) {//supprimer les etas inaccesibles du tableau des etats
+        A->etats[i] = accessibles[i];
+    }
+    A->nbr_etat = nbr_acc;
+
+    Transition trans_utiles[100];//tableau temporaire pour supprimer les transitions des etats inaccessibles
+    int nbr_t_utiles = 0;
+    for (int i = 0; i < A->nbr_trans; i++) {
+        bool dep_accessible = false;
+        for (int k = 0; k < nbr_acc; k++) {
+            if (A->transitions[i].etat_dep == accessibles[k]) { 
+                dep_accessible = true;
+                break;
+            }
+        }
+        //si l'etat depart est accessible, on garde la transition
+        if (dep_accessible) {
+            trans_utiles[nbr_t_utiles] = A->transitions[i];
+            nbr_t_utiles++;
+        }
+    }
+    for (int i = 0; i < nbr_t_utiles; i++) {// Remplacer les anciennes transitions
+        A->transitions[i] = trans_utiles[i];
+    }
+    A->nbr_trans = nbr_t_utiles;
+
+    char finaux_utiles[10];//de meme pour les etats finaux
+    int nbr_f_utiles = 0;
+    for (int i = 0; i < A->finc; i++) {
+        bool est_accessible = false;
+        for (int k = 0; k < nbr_acc; k++) {
+            if (A->etat_finaux[i] == accessibles[k]) {
+                est_accessible = true;
+                break;
+            }
+        }
+        if (est_accessible) {
+            finaux_utiles[nbr_f_utiles] = A->etat_finaux[i];
+            nbr_f_utiles++;
+        }
+    }
+    for (int i = 0; i < nbr_f_utiles; i++) {
+        A->etat_finaux[i] = finaux_utiles[i];
+    }
+    A->finc = nbr_f_utiles;
+
+    printf("Les etats inaccessibles ont ete supprimes.\n");
+}
 // fonction supprime les epsilons dans une automate
 void supprimerEpsilons(Automate *A) {
     Transition nouvelles_trans[100]; // Tableau temporaire pour stocker les nouvelles transitions
@@ -481,109 +564,282 @@ void supprimerEpsilons(Automate *A) {
         A->nbr_trans++;
         i++;
     }
+    supprimerEtatsInaccessibles(A);
     printf("Les transitions epsilon ont ete supprimees avec succes.\nAfficher l'automate pour y verifier.\n");
 }
-// Une pile pour retenir le début et la fin des morceaux d'automate
-char pile_debut[50];
-char pile_fin[50];
-int sommet = -1;
+Automate concatAutomates(Automate *A1, Automate *A2) {
+    Automate C;
+    int i, j;
 
-void push(char debut, char fin) {
-    sommet++;
-    pile_debut[sommet] = debut;
-    pile_fin[sommet] = fin;
-}
+    C.nbr_etat = 0;
+    C.nbr_trans = 0;
+    C.nbr_alph = 0;
+    C.inic = 0;
+    C.finc = 0;
 
-char nouvelEtat(Automate *a) {
-    char nom_etat = 'A' + a->nbr_etat; 
-    a->etats[a->nbr_etat++] = nom_etat;
-    return nom_etat;
-}
-
-void ajouterTransition(Automate *a, char dep, char arriv, char lettre) {
-    a->transitions[a->nbr_trans].etat_dep = dep;
-    a->transitions[a->nbr_trans].etat_arriv = arriv;
-    a->transitions[a->nbr_trans].lettre = lettre;
-    a->nbr_trans++;
-    if (lettre != 'e' && !rechercherAlphabet(a, lettre)) {
-        a->Alphabet[a->nbr_alph++] = lettre;
+    for(i = 0; i < A1->nbr_etat; i++) {
+        C.etats[C.nbr_etat++] = A1->etats[i];
     }
-}
 
-// --- TES NOUVELLES FONCTIONS SEPAREES EN MEMOIRE ---
-
-void faireConcatenation(Automate *a) {
-    char fin2 = pile_fin[sommet];     char deb2 = pile_debut[sommet]; sommet--;
-    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
-    
-    // On relie la fin du premier au début du deuxième avec epsilon
-    ajouterTransition(a, fin1, deb2, 'e'); 
-    push(deb1, fin2); // Le nouveau bloc va du début du 1er à la fin du 2eme
-}
-
-void faireUnion(Automate *a) {
-    char fin2 = pile_fin[sommet];     char deb2 = pile_debut[sommet]; sommet--;
-    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
-    
-    char nouv_deb = nouvelEtat(a);
-    char nouv_fin = nouvelEtat(a);
-    
-    ajouterTransition(a, nouv_deb, deb1, 'e');
-    ajouterTransition(a, nouv_deb, deb2, 'e');
-    ajouterTransition(a, fin1, nouv_fin, 'e');
-    ajouterTransition(a, fin2, nouv_fin, 'e');
-    
-    push(nouv_deb, nouv_fin);
-}
-
-void faireEtoile(Automate *a) {
-    char fin1 = pile_fin[sommet];     char deb1 = pile_debut[sommet]; sommet--;
-    
-    char nouv_deb = nouvelEtat(a);
-    char nouv_fin = nouvelEtat(a);
-    
-    ajouterTransition(a, nouv_deb, deb1, 'e'); // Entrer
-    ajouterTransition(a, fin1, nouv_fin, 'e'); // Sortir
-    ajouterTransition(a, nouv_deb, nouv_fin, 'e'); // Sauter (mot vide)
-    ajouterTransition(a, fin1, deb1, 'e'); // Boucler
-    
-    push(nouv_deb, nouv_fin);
-}
-
-void faireLettre(Automate *a, char lettre) {
-    char deb = nouvelEtat(a);
-    char fin = nouvelEtat(a);
-    ajouterTransition(a, deb, fin, lettre);
-    push(deb, fin);
-}
-void regexToAutomate(char *postfix, Automate *a) {
-    // On initialise l'automate vide
-    a->nbr_etat = 0; a->nbr_trans = 0; a->inic = 0; a->finc = 0; a->nbr_alph = 0;
-    sommet = -1; 
-
-    // On parcourt l'expression symbole par symbole
-    for (int i = 0; i < strlen(postfix); i++) {
-        char symbole = postfix[i];
-
-        if (symbole == '.') { 
-            faireConcatenation(a);
-        } 
-        else if (symbole == '|') { 
-            faireUnion(a);
-        } 
-        else if (symbole == '*') { 
-            faireEtoile(a);
-        } 
-        else { 
-            faireLettre(a, symbole);
+    for(i = 0; i < A2->nbr_etat; i++) {
+        if(!rechercherEtat(&C, A2->etats[i])) {
+            C.etats[C.nbr_etat++] = A2->etats[i];
         }
     }
 
-    // On définit l'état initial et final globaux
-    a->etat_initiaux[a->inic++] = pile_debut[0];
-    a->etat_finaux[a->finc++] = pile_fin[0];
-    
-    printf("Automate genere avec succes depuis l'expression reguliere !\n");
+
+    for(i = 0; i < A1->nbr_alph; i++) {
+        if(!rechercherAlphabet(&C, A1->Alphabet[i]))
+            C.Alphabet[C.nbr_alph++] = A1->Alphabet[i];
+    }
+    for(i = 0; i < A2->nbr_alph; i++) {
+        if(!rechercherAlphabet(&C, A2->Alphabet[i]))
+            C.Alphabet[C.nbr_alph++] = A2->Alphabet[i];
+    }
+
+
+    if(!rechercherAlphabet(&C, 'e')) {
+        C.Alphabet[C.nbr_alph++] = 'e';
+    }
+
+    for(i = 0; i < A1->nbr_trans; i++) {
+        C.transitions[C.nbr_trans++] = A1->transitions[i];
+    }
+
+    for(i = 0; i < A2->nbr_trans; i++) {
+        C.transitions[C.nbr_trans++] = A2->transitions[i];
+    }
+
+    for(i = 0; i < A1->finc; i++) {
+        for(j = 0; j < A2->inic; j++) {
+            C.transitions[C.nbr_trans].etat_dep = A1->etat_finaux[i];
+            C.transitions[C.nbr_trans].etat_arriv = A2->etat_initiaux[j];
+            C.transitions[C.nbr_trans].lettre = 'e'; // epsilon
+            C.nbr_trans++;
+        }
+    }
+
+    for(i = 0; i < A1->inic; i++) {
+        C.etat_initiaux[C.inic++] = A1->etat_initiaux[i];
+    }
+
+    for(i = 0; i < A2->finc; i++) {
+        C.etat_finaux[C.finc++] = A2->etat_finaux[i];
+    }
+
+    return C;
+}
+
+typedef struct Fragment { // représente un petit automate temporaire
+    int debut;
+    int fin;
+} Fragment;
+
+typedef struct PileFragments { // stocker les fragments pendant la construction
+    Fragment tab[100];
+    int sommet;
+} PileFragments;
+
+typedef struct PileChar { // lire les opérateurs, il faut les empiler pour savoir l'ordre et la priorité
+    char tab[100];
+    int sommet;
+} PileChar;
+
+void initPileFragments(PileFragments *p) { // initialiser la pile
+    p->sommet = -1;
+}
+
+void pushFragment(PileFragments *p, Fragment f) {  // empiler les fragments
+    p->tab[++(p->sommet)] = f;
+}
+
+Fragment popFragment(PileFragments *p) {  // dépiler les fragments
+    return p->tab[(p->sommet)--];
+}
+
+void initPileChar(PileChar *p) { // initialiser la pile des opérateurs
+    p->sommet = -1;
+}
+
+void pushChar(PileChar *p, char c) { // empiler un opérateur
+    p->tab[++(p->sommet)] = c;
+}
+
+char popChar(PileChar *p) {
+    return p->tab[(p->sommet)--];
+}
+
+char topChar(PileChar *p) {  // regarde le sommet de la pile sans le modifier
+    return p->tab[p->sommet];
+}
+
+bool pileCharVide(PileChar *p) { // vérifier si la pile est vide
+    return p->sommet == -1;
+}
+
+int nouvelEtat() {  // créer les états
+    static int etat = 1;
+    return etat++;
+}
+
+void ajouterEtatSiAbsent(Automate *A, char e) { // vérifier si l'état est absent pour l'ajouter
+    if (!rechercherEtat(A, e) && A->nbr_etat < 20) {
+        A->etats[A->nbr_etat++] = e;
+    }
+}
+
+void ajouterAlphabetSiAbsent(Automate *A, char c) { // ajouter une lettre
+    if (c != 'e' && !rechercherAlphabet(A, c) && A->nbr_alph < 10) {
+        A->Alphabet[A->nbr_alph++] = c;
+    }
+}
+
+void ajouterTransition(Automate *A, char dep, char arriv, char lettre) {
+    if (A->nbr_trans >= 50) {
+        printf("Erreur : nombre maximum de transitions atteint\n");
+        return;
+    }
+
+    if (transitionExiste(A->transitions, A->nbr_trans, dep, arriv, lettre)) {
+        return; // ne pas ajouter si elle existe déjà
+    }
+
+    A->transitions[A->nbr_trans].etat_dep = dep;
+    A->transitions[A->nbr_trans].etat_arriv = arriv;
+    A->transitions[A->nbr_trans].lettre = lettre;
+    A->nbr_trans++;
+
+    ajouterEtatSiAbsent(A, dep);
+    ajouterEtatSiAbsent(A, arriv);
+    ajouterAlphabetSiAbsent(A, lettre);
+}
+
+// construction des fragments
+Fragment automateLettre(Automate *A, char lettre) {
+    char debut = nouvelEtat();
+    char fin = nouvelEtat();
+    ajouterTransition(A, debut, fin, lettre);
+    Fragment f = {debut, fin};
+    return f;
+}
+Fragment concatFragments(Automate *A, Fragment f1, Fragment f2) {
+    ajouterTransition(A, f1.fin, f2.debut, 'e'); //concatener deux fragments en ajoutant les transitions epsilon
+    Fragment f = {f1.debut, f2.fin};
+    return f;
+}
+Fragment unionFragments(Automate *A, Fragment f1, Fragment f2) {
+    char debut = nouvelEtat();
+    char fin = nouvelEtat();
+    ajouterTransition(A, debut, f1.debut, 'e'); //soit choisir d'aller vers le premier fragment
+    ajouterTransition(A, debut, f2.debut, 'e'); //soit par le deuxieme
+    ajouterTransition(A, f1.fin, fin, 'e');
+    ajouterTransition(A, f2.fin, fin, 'e');
+    Fragment f = {debut, fin};
+    return f;
+}
+Fragment etoileFragment(Automate *A, Fragment f) {
+    char debut = nouvelEtat();
+    char fin = nouvelEtat();
+    ajouterTransition(A, debut, f.debut, 'e'); //commence une répétition de f
+    ajouterTransition(A, debut, fin, 'e'); //permet de ne pas prendre f du tout (0 répétition)
+    ajouterTransition(A, f.fin, f.debut, 'e'); // repetition
+    ajouterTransition(A, f.fin, fin, 'e'); //permet de terminer après n répétitions
+    Fragment nf = {debut, fin};
+    return nf;
+}
+
+ Fragment plusFragment(Automate *A, Fragment f) {
+    // Boucle : relie la fin du fragment à son début
+    ajouterTransition(A, f.fin, f.debut, 'e');
+
+    // Le fragment conserve le même début et fin
+    Fragment nf = {f.debut, f.fin};
+    return nf;
+}
+
+
+int priorite(char op) {
+    if (op == '*') return 3;
+	if (op == '^') return 3; //plus grande priorité
+    if (op == '.') return 2;
+    if (op == '+') return 1;
+    return 0; // '(' ou autres
+}
+void construireAutomateThompson(const char *regex, Automate *A) {
+    PileFragments pileF; //initialisation des piles
+    PileChar pileC;
+    initPileFragments(&pileF);
+    initPileChar(&pileC);
+
+    Fragment f, f1, f2;
+    char c; //caractère courant de la regex
+
+    for (int i = 0; regex[i] != '\0'; i++) { //parcours l'expression reguliere
+        c = regex[i];
+
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) { // si c est un symbole
+            f = automateLettre(A, c);   //on cree un fragment
+            if (!pileCharVide(&pileC) && topChar(&pileC) == '.') { //Si la pile d’opérateurs n’est pas vide et que le sommet de la pile est un opérateur de concaténation, alors on doit dépiler cet opérateur et effectuer la concaténation des deux fragments correspondants
+                popChar(&pileC);
+                f2 = popFragment(&pileF);
+                f = concatFragments(A, f2, f);
+            }
+            pushFragment(&pileF, f); //on empile le nouveau fragment
+        }
+        else if (c == '*') { //cas si on a l'etoile
+            f = popFragment(&pileF);
+            f = etoileFragment(A, f);
+            pushFragment(&pileF, f);
+        }
+        else if (c == '^') { // plus (1 ou plusieurs)
+    f = popFragment(&pileF);
+    f = plusFragment(A, f);  
+    pushFragment(&pileF, f);
+}
+        
+        else if (c == '+') {
+            pushChar(&pileC, '+');
+        }
+        else if (c == '(') {
+            pushChar(&pileC, '(');
+        }
+        else if (c == ')') {
+            while (!pileCharVide(&pileC) && topChar(&pileC) != '(') {
+                char op = popChar(&pileC);
+                f2 = popFragment(&pileF);
+                f1 = popFragment(&pileF);
+                if (op == '+') f = unionFragments(A, f1, f2);
+                else if (op == '.') f = concatFragments(A, f1, f2);
+                pushFragment(&pileF, f);
+            }
+            if (!pileCharVide(&pileC) && topChar(&pileC) == '(') popChar(&pileC);
+        }
+
+        // concat implicite
+        if (i + 1 < strlen(regex)) {
+            char next = regex[i + 1];
+            if (((c >= 'a' && c <= 'z') || c == '*' || c == ')') &&
+                ((next >= 'a' && next <= 'z') || next == '(')) {
+                pushChar(&pileC, '.');
+            }
+        }
+    }
+
+    // appliquer les opérateurs restants
+    while (!pileCharVide(&pileC)) {
+        char op = popChar(&pileC);
+        f2 = popFragment(&pileF);
+        f1 = popFragment(&pileF);
+        if (op == '+') f = unionFragments(A, f1, f2);
+        else if (op == '.') f = concatFragments(A, f1, f2);
+        pushFragment(&pileF, f);
+    }
+
+    Fragment finalF = popFragment(&pileF); // depilement de l'automate construit
+    A->etat_initiaux[0] = finalF.debut; //declaration de l'etat initial
+    A->inic = 1;
+    A->etat_finaux[0] = finalF.fin; //declaration de l'etat final
+    A->finc = 1;
 }
 int menu(void){
 		int choice;
@@ -662,20 +918,41 @@ int main(){
                 break;
             }
             case 10: {
-                char regex[50];
-                printf("\n--- GENERATION DEPUIS REGEX ---\n");
-                printf("ATTENTION: Entrez l'expression en notation POSTFIXE.\n");
-                printf("  => Le point '.' sert a concatener.\n");
-                printf("  => Le pipe '|' sert pour l'union (OU).\n");
-                printf("  => L'etoile '*' sert pour la fermeture de Kleene.\n");
-                printf("Exemple pour (a|b)*c : ab|*c.\n");
-                printf("Entrez votre regex : ");
-                
+                char regex[100];
+                printf("Entrer l'expression reguliere: ");
                 scanf("%s", regex);
-                regexToAutomate(regex, &a); // Remplace l'automate actuel 'a'
-                
-                // Optionnel : Sauvegarder automatiquement ce nouvel automate
-                sauvgarder(a);
+                // réinitialiser l'automate avant de le construire
+                a.nbr_etat = 0;
+                a.nbr_trans = 0;
+                a.nbr_alph = 0;
+                a.inic = 0;
+                a.finc = 0;
+
+                // construire l'automate avec Thompson
+                construireAutomateThompson(regex, &a);
+
+                printf("Automate genere avec succes a partir de l'expression reguliere '%s'.\n", regex);
+                automateShow(a);
+                break;
+            }
+            case 11: {
+                Automate a1, a2, c;
+                printf("\n--- Chargement de l'automate A1 ---\n");
+                readDot(&a1, "automate_a1.dot");
+
+                printf("\n--- Chargement de l'automate A2 ---\n");
+                readDot(&a2, "automate_a2.dot");
+
+                if(a1.nbr_etat == 0 || a2.nbr_etat == 0){
+                    printf("Erreur : un des automates est vide ou mal charge !\n");
+                    break;
+                }
+                c = concatAutomates(&a1, &a2);
+
+                printf("\n===== AUTOMATE RESULTAT  =====\n");
+                automateShow(c);
+                sauvgarder(c);
+                printf("\nFichier genere : automate_concate.dot\n");
                 break;
             }
             case 0 : printf("Fin du programme\n"); break;
