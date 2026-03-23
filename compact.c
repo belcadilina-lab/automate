@@ -76,7 +76,7 @@ void readDot(Automate *protocol,char *fichier){
             }
 		//stockage des alphabets
 		    if(protocol->nbr_alph < 8){
-			    if(rechercherAlphabet(protocol, val) == false){
+			    if(rechercherAlphabet(protocol, val) == false && val != '3'){
 					protocol->Alphabet[protocol->nbr_alph] = val;
 					protocol->nbr_alph++;
 			    }
@@ -333,22 +333,6 @@ void sauvgarder(Automate a){
     fclose(f);
     printf("Fichier 'automate_utilisateur.dot' genere avec succes.\n");
 }
-void SaveAcceptedWords(Automate *A){
-	char mot[10];
-	FILE *ftxt = fopen("fichier.txt","r");
-    FILE *fptr = fopen("MotsAccepter.txt","w");
-	if (ftxt == NULL || fptr == NULL){
-		printf("Fichier introuvable, veuillez vous assurez de l'emplacement du fichier.");
-		return;
-	}
-	while( fscanf(ftxt,"%s",mot) == 1){
-		if(Exists(A,mot) == true){
-		 	fprintf(fptr,"%s \n",mot);
-		}
-	}
-    fclose(fptr);
-    fclose(ftxt);
-}
 
 //fct verifier qu'un transition n'existe deja dans le tableau des transition
 bool transitionExiste(Transition *tab, int nbr, char dep, char arriv, char lettre) {
@@ -368,7 +352,7 @@ void calculFermetureEpsilon(Automate *A, char etat, char *fermeture, int *taille
     for (int i = 0; i < *taille; i++) {
         char etat_courant = fermeture[i];
         for (int j = 0; j < A->nbr_trans; j++) {
-            if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre == 'e') {
+            if (A->transitions[j].etat_dep == etat_courant) {
                 char etat_suivant = A->transitions[j].etat_arriv;
                 
                 //verifier si etat_suivant n'existe pas deja dans le tab du fermeture
@@ -501,7 +485,7 @@ void supprimerEpsilons(Automate *A) {
                     
                     // Chercher les transitions partant de p qui ne sont PAS des epsilons
                     for (int k = 0; k < A->nbr_trans; k++) {
-                        if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre != 'e') {
+                        if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre != '3') {
                             if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre)) {
                                 nouvelles_trans[nbr_nouv].etat_dep = etat_actuel;
                                 nouvelles_trans[nbr_nouv].etat_arriv = A->transitions[k].etat_arriv;
@@ -523,7 +507,7 @@ void supprimerEpsilons(Automate *A) {
     printf("Les transitions epsilon ont ete supprimees avec succes.\nAfficher l'automate pour y verifier.\n");
 }
 //changement pour travailler sur NFA
-bool Exists(Automate* autom, char * str){
+bool testerMot(Automate* autom, char * str){
     supprimerEpsilons(autom);
     char courant[20], suivant[20];
     int tailleCourant = 0, tailleSuivant = 0;
@@ -560,7 +544,22 @@ bool Exists(Automate* autom, char * str){
     }
     return false;
 }
-
+void SaveAcceptedWords(Automate *A){
+	char mot[10];
+	FILE *ftxt = fopen("fichier.txt","r");
+    FILE *fptr = fopen("MotsAccepter.txt","w");
+	if (ftxt == NULL || fptr == NULL){
+		printf("Fichier introuvable, veuillez vous assurez de l'emplacement du fichier.");
+		return;
+	}
+	while( fscanf(ftxt,"%s",mot) == 1){
+		if(testerMot(A,mot) == true){
+		 	fprintf(fptr,"%s \n",mot);
+		}
+	}
+    fclose(fptr);
+    fclose(ftxt);
+}
 typedef struct Fragment { // représente un petit automate temporaire
     int debut;
     int fin;
@@ -827,7 +826,7 @@ int main(){
                 printf("Entrer le mot a lire: ");
                 scanf("%s",mot);
                 while(getchar() != '\n');
-                if(Exists(&a,mot))
+                if(testerMot(&a,mot))
                 {
                     printf("Existe\n");
                 }
@@ -880,7 +879,7 @@ int main(){
                     printf("Erreur : un des automates est vide ou mal charge !\n");
                     break;
                 }
-                c = concatAutomates(&a1, &a2);
+                //c = concatFragments(&a1, (Fragment){a1.etat_initiaux[0], a1.etat_finaux[0]}, (Fragment){a2.etat_initiaux[0], a2.etat_finaux[0]});
 
                 printf("\n===== AUTOMATE RESULTAT  =====\n");
                 automateShow(c);

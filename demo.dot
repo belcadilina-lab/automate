@@ -4,15 +4,15 @@ digraph G {
     init -> q;
     q -> i [label="3"] ;
     q -> I [label="3"] ;
-    i -> 0 [label="3"];
+    i -> 0 [label="a"];
     0 -> 1 [label="a"] ;
     0 -> 3 [label="b"] ;
-    I -> 8 [label="3"];
+    I -> 8 [label="b"];
     8 -> 9 [label="a"] ;
     9 -> 5 [label="a"] ;
     3 -> f [label="3"];
     5 -> F [label="3"];
-    f -> p [label="3"];
+    f -> p [label="b"];
     F -> p [label="3"];
     p -> fin;
 }
