@@ -724,6 +724,114 @@ Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
     }
     return *C;
 }
+//fct permet ajouter ou fusionner des transitions
+void ajouterOuMajTransition(Automate *A, int dep, int arriv, const char *expr) {
+    if (strlen(expr) == 0) return;//ignore les expressions vide
+
+    //cherche si une transition existe deja
+    for (int i = 0; i < A->nbr_trans; i++) {
+        if (A->transitions[i].etat_dep == dep && A->transitions[i].etat_arriv == arriv) {
+            //fusionne les 2 expressions qui on meme etat depart et meme etat arrive avec l'operateur +
+            char temp[200];
+            snprintf(temp, 200, "(%s+%s)", A->transitions[i].lettre, expr);//imprime l'expression dans temp sans depasser 200 cases
+            strncpy(A->transitions[i].lettre, temp, 200);
+            return;
+        }
+    }
+    //sinon, on cree une nouvelle transition
+    A->transitions[A->nbr_trans].etat_dep = dep;
+    A->transitions[A->nbr_trans].etat_arriv = arriv;
+    strncpy(A->transitions[A->nbr_trans].lettre, expr, 200);
+    A->nbr_trans++;
+}
+
+//fct fusion des etats a un seul etat initial et un seul etat final
+void FusionneEtatsInitialsFinals(Automate *A) {
+    int initial = 21;
+    int final = 22;
+    A->etats[A->nbr_etat++] = initial;
+    A->etats[A->nbr_etat++] = final;
+
+    //relier l'etat initial aux anciens états initiaux
+    for (int i = 0; i < A->inic; i++) {
+        ajouterOuMajTransition(A, initial, A->etat_initiaux[i], "E");
+    }
+    A->etat_initiaux[0] = initial;
+    A->inic = 1;
+
+    //relier les anciens états finaux au super-final
+    for (int i = 0; i < A->finc; i++) {
+        ajouterOuMajTransition(A, A->etat_finaux[i], final, "E");
+    }
+    A->etat_finaux[0] = final;
+    A->finc = 1;
+}
+//fonction pour effacer un etat et ses transitions liees
+void supprimerEtat(Automate *A, int etat_supp) {
+    int i = 0;
+    while (i < A->nbr_trans) {
+        if (A->transitions[i].etat_dep == etat_supp || A->transitions[i].etat_arriv == etat_supp) {
+            //on remplace la transition a supprimer par la derniere du tableau
+            A->transitions[i] = A->transitions[A->nbr_trans - 1];
+            A->nbr_trans--;
+        } else {
+            i++;
+        }
+    }
+}
+//fct permet extraire une expression entre deux etats
+void obtenirExpression(Automate *A, int dep, int arriv, char *resultat) {
+    strcpy(resultat, ""); //initilaiser par vide
+    for (int i = 0; i < A->nbr_trans; i++) {
+        if (A->transitions[i].etat_dep == dep && A->transitions[i].etat_arriv == arriv) {
+            strcpy(resultat, A->transitions[i].lettre);
+            return;
+        }
+    }
+}
+
+void genererRegexDepuisAutomate(Automate *A, char *regex) {
+    
+    FusionneEtatsInitialsFinals(A);
+    for (int k = 0; k < A->nbr_etat; k++) {
+        int act = A->etats[k];
+        if (act == A->etat_initiaux[0] || act == A->etat_finaux[0]) continue;
+
+        //recupere la boucle sur lui-même s'il y en a une
+        char tmp_boucle[200], boucle[200] = "";
+        obtenirExpression(A, act, act, tmp_boucle);
+        if (strlen(tmp_boucle) > 0) {
+            snprintf(boucle, 200, "(%s)*", tmp_boucle);
+        }
+
+        // Trouver tous les chemins entrant (i -> act) puis sortant (act -> j)
+        for (int i = 0; i < A->nbr_trans; i++) {
+            if (A->transitions[i].etat_arriv == act && A->transitions[i].etat_dep != act) {
+                int etat_i = A->transitions[i].etat_dep;
+                char ExpR_i_act[200];
+                strcpy(ExpR_i_act, A->transitions[i].lettre);
+
+                for (int j = 0; j < A->nbr_trans; j++) {
+                    if (A->transitions[j].etat_dep == act && A->transitions[j].etat_arriv != act) {
+                        int etat_j = A->transitions[j].etat_arriv;
+                        char ExpR_act_j[200];
+                        strcpy(ExpR_act_j, A->transitions[j].lettre);
+
+                        // concatener: (Entree) + (Boucle) + (Sortie)
+                        char nouveau_chemin[200];
+                        snprintf(nouveau_chemin, 200, "(%s)%s(%s)", ExpR_i_act, boucle, ExpR_act_j);
+                        
+                        // Ajouter le pont direct de i vers j
+                        ajouterOuMajTransition(A, etat_i, etat_j, nouveau_chemin);
+                    }
+                }
+            }
+        }
+        //supprision de l'etat act a la fin du concatenation
+        supprimerEtat(A, act);
+    }
+    obtenirExpression(A, A->etat_initiaux[0], A->etat_finaux[0], regex);
+}
 int menu(void){
 		int choice;
 		printf("\n-----------AUTOMATE--------\n");
@@ -818,6 +926,12 @@ int main(){
                 automateShow(c);
                 sauvgarder(c);
                 break;
+            }
+            case 12:{
+                char regex[200] = "";
+                genererRegexDepuisAutomate(&a, regex);
+                printf("voici l'expression reguliere du l'utomate:\n");
+                printf("%s\n\n", regex);
             }
             case 0 : printf("Fin du programme\n"); break;
             default : printf("Entrer un choix valide s'il vous plait!\n");
