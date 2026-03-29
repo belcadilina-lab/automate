@@ -430,7 +430,7 @@ void supprimerEpsilons(Automate *A) {
                     // Chercher les transitions partant de p qui ne sont PAS des epsilons
                     for (int k = 0; k < A->nbr_trans; k++) {
                         if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre[0] != 'E') {
-                            if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre)) {
+                            if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre[0])) {
                                 nouvelles_trans[nbr_nouv].etat_dep = etat_actuel;
                                 nouvelles_trans[nbr_nouv].etat_arriv = A->transitions[k].etat_arriv;
                                 nouvelles_trans[nbr_nouv].lettre[0] = A->transitions[k].lettre[0];
