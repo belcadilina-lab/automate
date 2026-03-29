@@ -832,6 +832,8 @@ int menu(void){
         printf("8. supprimer les epsilons dans l'automate.\n");
         printf("9. union de 2 automates.\n");
         printf("10. Generer un automate a partir d'une expression reguliere.\n");
+        printf("11. Concatenation de 2 automates.\n");
+        printf("12. Generer une expression reguliere a partir d'un automate.\n");
         printf("0. Quitter le programme.\nEffectuer un choix: ");
         scanf("%d",&choice);
 		return choice;
@@ -959,6 +961,16 @@ int main(){
                 break;
             }
             case 12:{
+                if(a.nbr_etat == 0){
+                    printf("Erreur : l'automate est vide ou mal charge !\n");
+                    break;
+                }
+                a.nbr_etat = 0;
+                a.inic = 0;
+                a.finc = 0;
+                a.nbr_alph = 0;
+                a.nbr_etat = 0;
+                a.nbr_trans = 0;
                 char regex[200] = "";
                 genererRegexDepuisAutomate(&a, regex);
                 printf("voici l'expression reguliere du l'utomate:\n");

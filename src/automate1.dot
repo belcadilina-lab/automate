@@ -1,11 +1,11 @@
 digraph G {
-init [shape=point];
-fin [shape=point];
+init [shape=point shape=point style=filled, fillcolor=white color=white];
+fin [shape=point shape=point style=filled, fillcolor=white color=white];
 init -> 1;
 1 -> 2 [label="a"];
 3 -> 4 [label="b"];
 2 -> 3 [label="E"];
-5 -> 6 [label="b"];
+5 -> 6 [label="a"];
 4 -> 5 [label="E"];
 6 -> fin;
 }
