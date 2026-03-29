@@ -5,7 +5,7 @@
 typedef struct Transition{
     int etat_dep;
     int etat_arriv;
-    char lettre;
+    char lettre[200];
 }Transition;
 
 typedef struct Automate{
@@ -61,7 +61,7 @@ void readDot(Automate *protocol,char *fichier){
 		//stockage des transitions
 			protocol->transitions[i].etat_dep = src;
 			protocol->transitions[i].etat_arriv = dest;
-			protocol->transitions[i].lettre = val;
+			protocol->transitions[i].lettre[0] = val;
 			i++;
 		//stockage des etats
 		    if(protocol->nbr_etat < 20){
@@ -122,7 +122,7 @@ void Union(void)
 
     for(int k = 0; k<autom1.nbr_trans ; k++)
     {
-        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom1.transitions[k].etat_dep,autom1.transitions[k].etat_arriv,autom1.transitions[k].lettre);    
+        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom1.transitions[k].etat_dep,autom1.transitions[k].etat_arriv,autom1.transitions[k].lettre[0]);    
     }
     //stock les etats initiales du 2eme automate et ses transitions
     for(int i = 0 ; i< autom2.inic ; i++)
@@ -130,7 +130,7 @@ void Union(void)
 
     for(int k = 0; k<autom2.nbr_trans ; k++)
     {
-        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom2.transitions[k].etat_dep,autom2.transitions[k].etat_arriv,autom2.transitions[k].lettre);    
+        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom2.transitions[k].etat_dep,autom2.transitions[k].etat_arriv,autom2.transitions[k].lettre[0]);    
     }
     //etats finaux
 
@@ -165,7 +165,7 @@ void automateShow(Automate protocol){
 	}
 	printf("\nVoici la liste des transitions :\n");
 	for( i = 0; i< protocol.nbr_trans ; i++){
-		printf("[%d] -> %c -> [%d]\n",protocol.transitions[i].etat_dep,protocol.transitions[i].lettre,protocol.transitions[i].etat_arriv);
+		printf("[%d] -> %c -> [%d]\n",protocol.transitions[i].etat_dep,protocol.transitions[i].lettre[0],protocol.transitions[i].etat_arriv);
 	}
 	printf("\nVoici la liste des etats initiaux :\n");
 	for( i = 0; i< protocol.inic ; i++){
@@ -231,7 +231,7 @@ void afficherEtatsAvecTransition(Automate *protocol, char lettre) {
         for (int j = 0; j < protocol->nbr_trans; j++) {
 
             if (protocol->transitions[j].etat_dep == protocol->etats[i] &&
-                protocol->transitions[j].lettre == lettre) {
+                protocol->transitions[j].lettre[0] == lettre) {
 
                 if (!aTransition) {
                     printf("Etat [%d] -> ", protocol->etats[i]);
@@ -269,7 +269,7 @@ void sauvgarder(Automate a){
          fprintf(f, "init -> %d;\n", a.etat_initiaux[i]);
     }
     for(i = 0; i < a.nbr_trans; i++){
-        fprintf(f, "%d -> %d [label=\"%c\"];\n",a.transitions[i].etat_dep,a.transitions[i].etat_arriv,a.transitions[i].lettre);
+        fprintf(f, "%d -> %d [label=\"%c\"];\n",a.transitions[i].etat_dep,a.transitions[i].etat_arriv,a.transitions[i].lettre[0]);
     }
     for(i = 0; i < a.finc; i++){
         fprintf(f, "%d -> fin;\n", a.etat_finaux[i]);
@@ -282,7 +282,7 @@ void sauvgarder(Automate a){
 //fct verifier qu'un transition n'existe deja dans le tableau des transition
 bool transitionExiste(Transition *tab, int nbr, int dep, int arriv, char lettre) {
     for (int i = 0; i < nbr; i++) {
-        if (tab[i].etat_dep == dep && tab[i].etat_arriv == arriv && tab[i].lettre == lettre) {
+        if (tab[i].etat_dep == dep && tab[i].etat_arriv == arriv && tab[i].lettre[0] == lettre) {
             return true;
         }
     }
@@ -297,7 +297,7 @@ void calculFermetureEpsilon(Automate *A, int etat, int *fermeture, int *taille) 
     for (int i = 0; i < *taille; i++) {
         int etat_courant = fermeture[i];
         for (int j = 0; j < A->nbr_trans; j++) {
-            if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre == 'E') {
+            if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre[0] == 'E') {
                 int etat_suivant = A->transitions[j].etat_arriv;
                 
                 //verifier si etat_suivant n'existe pas deja dans le tab du fermeture
@@ -332,7 +332,7 @@ void supprimerEtatsInaccessibles(Automate *A) {
             int etat_courant = accessibles[i];
 
             for (int j = 0; j < A->nbr_trans; j++) {
-                if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre != 'E') {
+                if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre[0] != 'E') {
                     int etat_dest = A->transitions[j].etat_arriv;
                     
                     bool existe = false;//verifier que etat_dest n'est pas deja accessible
@@ -429,11 +429,11 @@ void supprimerEpsilons(Automate *A) {
                     
                     // Chercher les transitions partant de p qui ne sont PAS des epsilons
                     for (int k = 0; k < A->nbr_trans; k++) {
-                        if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre != 'E') {
+                        if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre[0] != 'E') {
                             if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre)) {
                                 nouvelles_trans[nbr_nouv].etat_dep = etat_actuel;
                                 nouvelles_trans[nbr_nouv].etat_arriv = A->transitions[k].etat_arriv;
-                                nouvelles_trans[nbr_nouv].lettre = A->transitions[k].lettre;
+                                nouvelles_trans[nbr_nouv].lettre[0] = A->transitions[k].lettre[0];
                                 nbr_nouv++;
                             }
                         }
@@ -471,7 +471,7 @@ bool testerMot(Automate* autom, char * str){
         {
             for(int j = 0; j< autom->nbr_trans; j++)
             {
-                if(autom->transitions[j].etat_dep == courant[s] && autom->transitions[j].lettre == str[i])
+                if(autom->transitions[j].etat_dep == courant[s] && autom->transitions[j].lettre[0] == str[i])
                 {
                     suivant[tailleSuivant] = autom->transitions[j].etat_arriv;
                     tailleSuivant++;
@@ -564,7 +564,7 @@ void ajouterTransition(Automate *A, int dep, int arriv, char lettre) {
 
     A->transitions[A->nbr_trans].etat_dep = dep;
     A->transitions[A->nbr_trans].etat_arriv = arriv;
-    A->transitions[A->nbr_trans].lettre = lettre;
+    A->transitions[A->nbr_trans].lettre[0] = lettre;
     A->nbr_trans++;
 
     ajouterEtatSiAbsent(A, dep);
@@ -710,7 +710,7 @@ Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
         for(j = 0; j < A2->inic; j++) {
             C->transitions[C->nbr_trans].etat_dep = A1->etat_finaux[i];
             C->transitions[C->nbr_trans].etat_arriv = A2->etat_initiaux[j];
-            C->transitions[C->nbr_trans].lettre = '$'; // 'e' remplace '3' !
+            C->transitions[C->nbr_trans].lettre[0] = 'E'; // 'e' remplace '3' !
             C->nbr_trans++;
         }
     }
