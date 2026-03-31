@@ -22,8 +22,11 @@ typedef struct Automate{
 }Automate;
 void checkFile(FILE* test)
 {
-    if(test == NULL) perror("erreur ouverture");
-    else printf("fichier ouvert avec succes\n");
+    if(test == NULL){
+    perror("erreur ouverture");
+    exit(EXIT_FAILURE);
+    } 
+    //else printf("fichier ouvert avec succes\n");
 }
 bool rechercherEtat(Automate *protocol, int etatChar){
 	for(int i = 0 ; i< protocol->nbr_etat;i++){
@@ -595,7 +598,7 @@ Fragment etoileFragment(Automate *A, Fragment f) {
     ajouterTransition(A, nf.debut, f.debut, 'E'); 
     ajouterTransition(A, nf.debut, nf.fin, 'E');  
     ajouterTransition(A, f.fin, f.debut, 'E');    
-    ajouterTransition(A, f.fin, nf.fin, 'E');     
+    ajouterTransition(A, f.fin, nf.fin, 'E'); 
     return nf;
 }
 
@@ -663,6 +666,7 @@ void construireAutomateThompson(const char *regex, Automate *A) {
     A->etat_finaux[0] = finalF.fin;
     A->finc = 1;
 }
+void FusionneEtatsInitialsFinals(Automate *p);
 Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
     int i, j;
     C->nbr_etat = 0;
@@ -696,12 +700,11 @@ Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
     for(i = 0; i < A2->nbr_trans; i++) {
         C->transitions[C->nbr_trans++] = A2->transitions[i];
     }
-
     for(i = 0; i < A1->finc; i++) {
         for(j = 0; j < A2->inic; j++) {
             C->transitions[C->nbr_trans].etat_dep = A1->etat_finaux[i];
             C->transitions[C->nbr_trans].etat_arriv = A2->etat_initiaux[j];
-            C->transitions[C->nbr_trans].lettre[0] = 'E'; // 'e' remplace '3' !
+            C->transitions[C->nbr_trans].lettre[0] = 'E'; 
             C->nbr_trans++;
         }
     }
@@ -852,12 +855,7 @@ int main(){
                 automateShow(a);
                 break;}
             case 3 :{
-                printf("Entrer le nom du fichier a generer (ex: mon_automate.dot) : ");
-                char filename[100];
-                fgets(filename, 100, stdin);
-                while(getchar() != '\n');
-                printf("Creation de %s...\n", filename);
-                sauvgarder(a, filename);
+                sauvgarder(a,"automate_utilisateur.dot");
                 break;
                 }
             case 4 : {
@@ -948,16 +946,15 @@ int main(){
                 break;
             }
             case 11: {
-                Automate a1, a2, c;
+                Automate a1, a2;
                 readDot(&a1, "src/automate1.dot");
                 readDot(&a2, "src/automate2.dot");
                 if(a1.nbr_etat == 0 || a2.nbr_etat == 0){
                     printf("Erreur : un des automates est vide ou mal charge !\n");
                     break;
                 }
-                c = concatAutomates(&a1,&a2,&c);
-                automateShow(c);
-                sauvgarder(c,"src/results.dot");
+                a = concatAutomates(&a1,&a2,&a);
+                automateShow(a);
                 break;
             }
             case 12:{
