@@ -20,6 +20,14 @@ typedef struct Automate{
     int etat_finaux[10];
 	int finc;//nbr des etats finaux
 }Automate;
+void verifyAllocationWord(char* a)
+{
+    if (a==NULL) 
+    {
+     perror("Erreur Allocation"); 
+     exit(EXIT_FAILURE);
+    }
+}
 void checkFile(FILE* test)
 {
     if(test == NULL){
@@ -27,6 +35,14 @@ void checkFile(FILE* test)
     exit(EXIT_FAILURE);
     } 
     //else printf("fichier ouvert avec succes\n");
+}
+void initAutomate(Automate* a1)
+{
+    a1->finc = 0;
+    a1->inic = 0;
+    a1->nbr_alph = 0;
+    a1->nbr_etat = 0;
+    a1->nbr_trans = 0;
 }
 bool rechercherEtat(Automate *protocol, int etatChar){
 	for(int i = 0 ; i< protocol->nbr_etat;i++){
@@ -101,7 +117,7 @@ void readDot(Automate *protocol,char *fichier){
 	protocol->nbr_trans = i;
 	fclose(f);
 }
-void Union(const char* a1, const char* a2)
+void UnionFichiers(const char* a1, const char* a2)
 {
     Automate autom1;
     Automate autom2;
@@ -783,6 +799,58 @@ void obtenirExpression(Automate *A, int dep, int arriv, char *resultat) {
         }
     }
 }
+copy(Automate* auto1, Automate* result)
+{
+    for(int i= 0; i<auto1->inic ; i++)
+    {
+        result->inic++;
+        if(result->etat_initiaux[result->inic] == auto1->etat_initiaux[i]){
+        while(result->etat_initiaux[result->inic] == auto1->etat_initiaux[i]){
+            result->etat_initiaux[result->inic]++;
+        }
+
+        }
+
+
+    }
+}
+void copyToResult(Automate auto1, Automate* result)
+{
+
+}
+void fromEpsToA(Automate* result)
+{
+    
+    for(int i = 0; i< result->inic ; i++)
+    {
+        result->nbr_trans++;
+        result->transitions[result->nbr_trans].etat_dep = 100;
+        result->transitions[result->nbr_trans].etat_arriv = result->etat_initiaux[i];
+        strcpy(result->transitions[result->nbr_trans].lettre, "E");
+    }
+
+}
+
+void fromAtoEps(Automate* result)
+{
+        for(int i = 0; i< result->finc ; i++)
+    {
+        result->nbr_trans++;
+        result->transitions[result->nbr_trans].etat_dep = result->etat_finaux[i];
+        result->transitions[result->nbr_trans].etat_arriv = 200;
+        strcpy(result->transitions[result->nbr_trans].lettre, "E");
+    }
+}
+void UnionStructure(Automate* auto1, Automate* auto2, Automate* result)
+{
+
+    initAutomate(result);
+
+    fromEpsToA(auto1);
+    fromEpsToA(auto2);
+    fromAtoEps(auto1);
+    fromAtoEps(auto2);
+}
 
 void genererRegexDepuisAutomate(Automate *A, char *regex) {
     
@@ -826,6 +894,25 @@ void genererRegexDepuisAutomate(Automate *A, char *regex) {
     }
     obtenirExpression(A, A->etat_initiaux[0], A->etat_finaux[0], regex);
 }
+
+void sauvegarderAvecNom(Automate a)
+{
+                printf("pour cibler le src entrer src/ suivi de votre nom de fichier");
+                printf("Entrer le nom du fichier");
+                char name[100];
+                fgets(name,100,stdin);
+                sauvgarder(a,name);
+}
+
+char* genererAvecNom(void)
+{
+                printf("pour cibler le src entrer src/ suivi de votre nom de fichier");
+                printf("Entrer le nom du fichier");
+                char* name = malloc(100* sizeof(char));
+                verifyAllocationWord(name);
+                fgets(name,100,stdin);
+                return name;
+}
 int menu(void){
 		int choice;
         printf("\n-----------AUTOMATE--------\n");
@@ -855,7 +942,6 @@ int main(){
                 automateShow(a);
                 break;}
             case 3 :{
-                sauvgarder(a,"automate_utilisateur.dot");
                 break;
                 }
             case 4 : {
@@ -893,42 +979,38 @@ int main(){
                 break;
             }
             case 9:{
-                Automate autom1, autom2;
-                char regex1[100], regex2[100];
-                printf("Veuillez entrer la premiere expression reguliere (sans espaces) -1 pour annuler : ");
-                scanf("%s", regex1);
-                while(getchar() != '\n');                
-                if(strcmp(regex1, "-1") == 0){
-                    printf("Operation annulee.\n");
-                    printf("automate1.dot et automate2.dot ne seront pas generes.\n");
+                int choix;
+                printf("1. Union par fichiers: \n""2. Union dans la structure: \n");
+                printf("quel type d'union vous voulez effectuer: ");
+                scanf("%d",&choix);
+                switch (choix)
+                {
+                case 1:
+                char* autoN = malloc(sizeof(char) * 100);
+                char* autoM = malloc(sizeof(char) * 100);
+                verifyAllocationWord(autoN);
+                verifyAllocationWord(autoM);
+                autoN = genererAvecNom();
+                autoM = genererAvecNom();
+                    UnionFichiers(autoN,autoM);
+                    break;
+                case 2: 
+                Automate* a4;
+                Automate* a3;
+                Automate* resultant;
+                char* buffer1= malloc(sizeof(char) * 100);
+                char* buffer2 = malloc(sizeof(char) * 100);
+                verifyAllocationWord(buffer1);
+                verifyAllocationWord(buffer2);
+                autoN = genererAvecNom();
+                autoM = genererAvecNom();
+                readDot(&a4,buffer1);
+                readDot(&a3,buffer2);
+                Automate resultant;
+                UnionStructure(a3,a4,resultant);
+                default:
                     break;
                 }
-                autom1.nbr_etat = 0;
-                autom1.inic = 0;
-                autom1.finc = 0;
-                autom1.nbr_trans = 0;
-                autom1.nbr_alph = 0;
-                construireAutomateThompson(regex1, &autom1);
-                sauvgarder(autom1,"src/automate1.dot" );
-                printf("Automate pour la premiere expression reguliere genere dans 'src/automate1.dot'.\n");
-
-                printf("Veuillez entrer la deuxieme expression reguliere (sans espaces) -1 pour annuler : ");
-                scanf("%s", regex2);
-                if(strcmp(regex2, "-1") == 0){
-                    printf("Operation annulee.\n");
-                    break;
-                }
-                while(getchar() != '\n');
-                
-                autom2.nbr_etat = 0;
-                autom2.inic = 0;
-                autom2.finc = 0;
-                autom2.nbr_trans = 0;
-                autom2.nbr_alph = 0;
-                autom2.nbr_etat = 0;
-                construireAutomateThompson(regex2, &autom2);
-                sauvgarder(autom2,"src/automate2.dot");
-                Union("src/automate1.dot","src/automate2.dot");
                 break;
             }
             case 10: {
