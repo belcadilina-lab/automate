@@ -117,7 +117,7 @@ void readDot(Automate *protocol,char *fichier){
 	protocol->nbr_trans = i;
 	fclose(f);
 }
-void UnionFichiers(const char* a1, const char* a2)
+ /* void UnionFichiers(const char* a1, const char* a2)
 {
     Automate autom1;
     Automate autom2;
@@ -163,6 +163,7 @@ fclose(U);
 fclose(V);
 fclose(W);
 }
+*/ 
 void automateShow(Automate protocol){
 	int i;
 	printf("Voici la liste des etats :\n");
@@ -799,19 +800,23 @@ void obtenirExpression(Automate *A, int dep, int arriv, char *resultat) {
         }
     }
 }
-copy(Automate* auto1, Automate* result)
+void copy(Automate* auto1, Automate* result)
 {
     for(int i= 0; i<auto1->inic ; i++)
     {
-        result->inic++;
-        if(result->etat_initiaux[result->inic] == auto1->etat_initiaux[i]){
-        while(result->etat_initiaux[result->inic] == auto1->etat_initiaux[i]){
-            result->etat_initiaux[result->inic]++;
-        }
+        result->etat_initiaux[result->inic++] = auto1->etat_initiaux[i] ;
+        
+    }
 
-        }
+    for(int i= 0; i<auto1->finc ; i++)
+    {
+        result->etat_finaux[result->finc++] = auto1->etat_finaux[i] ;
+    }
 
 
+    for(int i= 0; i<auto1->nbr_trans ; i++)
+    {
+        result->transitions[result->nbr_trans++] = auto1->transitions[i];
     }
 }
 void changeState(Automate* auto1, Automate* auto2)
@@ -853,34 +858,44 @@ void changeState(Automate* auto1, Automate* auto2)
 
     }
 }
-void fromEpsToA(Automate* result)
+void fromEpsToA(Automate* result,Automate* a1)
 {
-    
-    for(int i = 0; i< result->inic ; i++)
+    result->etat_initiaux[0] = 100;
+        result->inic = 1;
+    for(int i = 0; i< a1->inic ; i++)
     {
-        result->nbr_trans++;
         result->transitions[result->nbr_trans].etat_dep = 100;
-        result->transitions[result->nbr_trans].etat_arriv = result->etat_initiaux[i];
+        result->transitions[result->nbr_trans].etat_arriv = a1->etat_initiaux[i];
         strcpy(result->transitions[result->nbr_trans].lettre, "E");
+        result->nbr_trans++;
     }
 
 }
 
-void fromAtoEps(Automate* result)
+void fromAtoEps(Automate* result,Automate* a1)
 {
-        for(int i = 0; i< result->finc ; i++)
+    result->etat_finaux[0] = 200;
+    result->finc = 1;
+
+        for(int i = 0; i< a1->finc ; i++)
     {
-        result->nbr_trans++;
-        result->transitions[result->nbr_trans].etat_dep = result->etat_finaux[i];
+        result->transitions[result->nbr_trans].etat_dep = a1->etat_finaux[i];
         result->transitions[result->nbr_trans].etat_arriv = 200;
         strcpy(result->transitions[result->nbr_trans].lettre, "E");
+        result->nbr_trans++;
     }
 }
 void UnionStructure(Automate* auto1, Automate* auto2, Automate* result)
 {
 
     initAutomate(result);
-
+    changeState(auto1,auto2);
+    copy(auto1,result);
+    copy(auto2,result);
+    fromEpsToA(result,auto1);
+    fromEpsToA(result,auto2);
+    fromAtoEps(result,auto1);
+    fromAtoEps(result,auto2);    
 }
 
 void genererRegexDepuisAutomate(Automate *A, char *regex) {
@@ -937,13 +952,14 @@ void sauvegarderAvecNom(Automate a)
 
 char* genererAvecNom(void)
 {
-                printf("pour cibler le src entrer src/ suivi de votre nom de fichier");
-                printf("Entrer le nom du fichier");
+                printf("pour cibler le src entrer src/ suivi de votre nom de fichier\n");
+                printf("Entrer le nom du fichier: ");
+                while(getchar() != '\n');
                 char* name = malloc(100* sizeof(char));
                 verifyAllocationWord(name);
                 fgets(name,100,stdin);
                 return name;
-}
+}   
 int menu(void){
 		int choice;
         printf("\n-----------AUTOMATE--------\n");
@@ -973,6 +989,7 @@ int main(){
                 automateShow(a);
                 break;}
             case 3 :{
+                sauvgarder(a,"automate_utilisateur.dot");
                 break;
                 }
             case 4 : {
@@ -1010,40 +1027,32 @@ int main(){
                 break;
             }
             case 9:{
-                int choix;
-                printf("1. Union par fichiers: \n""2. Union dans la structure: \n");
-                printf("quel type d'union vous voulez effectuer: ");
-                scanf("%d",&choix);
-                switch (choix)
+                /* if(choix==1)
                 {
-                case 1:
-                char* autoN = malloc(sizeof(char) * 100);
-                char* autoM = malloc(sizeof(char) * 100);
-                verifyAllocationWord(autoN);
-                verifyAllocationWord(autoM);
-                autoN = genererAvecNom();
-                autoM = genererAvecNom();
-                    UnionFichiers(autoN,autoM);
-                    break;
-                case 2: 
-                Automate* a4;
-                Automate* a3;
-                Automate* resultant;
-                char* buffer1= malloc(sizeof(char) * 100);
-                char* buffer2 = malloc(sizeof(char) * 100);
-                verifyAllocationWord(buffer1);
-                verifyAllocationWord(buffer2);
-                autoN = genererAvecNom();
-                autoM = genererAvecNom();
-                readDot(&a4,buffer1);
-                readDot(&a3,buffer2);
-                Automate resultant;
+
+                    UnionFichiers("src/automate1.dot","src/automate1.dot");
+                } ******/
+               /*
+                    else if(choix == 2)
+                {
+                */
+
+
+                Automate* a4 = malloc(sizeof(Automate));
+                Automate* a3 = malloc(sizeof(Automate)) ;
+                Automate* resultant = malloc(sizeof(Automate));
+                initAutomate(resultant);
+                initAutomate(a3);
+                initAutomate(a4);              
+                readDot(a4,"src/automate1.dot");
+                readDot(a3,"src/automate2.dot");
                 UnionStructure(a3,a4,resultant);
-                default:
-                    break;
-                }
+                a = *resultant;
+            //}
+                
                 break;
             }
+            
             case 10: {
                 char regex[100]; 
                 printf("Veuillez entrer votre expression reguliere (sans espaces) : ");
