@@ -43,6 +43,34 @@ void initAutomate(Automate* a1)
     a1->nbr_alph = 0;
     a1->nbr_etat = 0;
     a1->nbr_trans = 0;
+    //fonction copie des valeurs
+}
+void recopieEtats(Automate *A, int Etats[], int taille){
+    for(int i =0;i<taille; i++){
+        A->etats[i]= Etats[i];
+    }
+    A->nbr_etat = taille;
+}
+void recopieEtatsInitiale(Automate *A, int Etats[], int taille){
+    for(int i =0;i<taille; i++){
+        A->etat_initiaux[i]= Etats[i];
+    }
+    A->inic = taille;
+}
+void recopieEtatsFinaux(Automate *A, int Etats[], int taille){
+    for(int i =0;i<taille; i++){
+        A->etat_finaux[i]= Etats[i];
+    }
+    A->finc = taille;
+}
+void recopieTransition(Automate *A, Transition trans[], int taille){
+    for(int i =0;i<taille; i++){
+        // A->transitions[i].etat_dep= trans[i].etat_dep;
+        // A->transitions[i].etat_arriv= trans[i].etat_arriv;
+        // strncpy(A->transitions[i].lettre,trans[i].lettre,sizeof(trans[i].lettre));
+        A->transitions[i]=trans[i];
+    }
+    A->nbr_trans = taille;
 }
 bool rechercherEtat(Automate *protocol, int etatChar){
 	for(int i = 0 ; i< protocol->nbr_etat;i++){
@@ -65,11 +93,7 @@ bool rechercherAlphabet(Automate *protocol, char etatChar){
 void readDot(Automate *protocol,char *fichier){
 	int i=0,inic,finc,src,dest;
     char val,ligne[100], buff[20];
-	protocol->nbr_etat = 0;
-    protocol->nbr_trans = 0;
-    protocol->nbr_alph = 0;
-	protocol->inic=0;
-	protocol->finc=0;
+	initAutomate(protocol);
 	FILE* f = fopen(fichier,"r");
 	if(f == NULL){
 		printf("Fichier introuvable, veuillez vous assurez de l'emplacement du fichier.");
@@ -329,33 +353,30 @@ void calculFermetureEpsilon(Automate *A, int etat, int *fermeture, int *taille) 
 }
 //fct permet supprimer les etats inaccessible
 void supprimerEtatsInaccessibles(Automate *A) {
-    int accessibles[20];
-    int nbr_acc = 0;
-    for (int i = 0; i < A->inic; i++) {
-        accessibles[nbr_acc] = A->etat_initiaux[i];
-        nbr_acc++;
-    }
+    Automate Acc;
+    initAutomate(&Acc);
+    recopieEtats(&Acc,A->etat_initiaux, A->inic);
     
     bool nouveau_trouve;//trouver tous les etats accessibles
     do {
         nouveau_trouve = false;
-        for (int i = 0; i < nbr_acc; i++) {
-            int etat_courant = accessibles[i];
+        for (int i = 0; i < Acc.nbr_etat; i++) {
+            int etat_courant = Acc.etats[i];
 
             for (int j = 0; j < A->nbr_trans; j++) {
-                if (A->transitions[j].etat_dep == etat_courant && A->transitions[j].lettre[0] != 'E') {
+                if (A->transitions[j].etat_dep == etat_courant) {
                     int etat_dest = A->transitions[j].etat_arriv;
                     
                     bool existe = false;//verifier que etat_dest n'est pas deja accessible
-                    for (int k = 0; k < nbr_acc; k++) {
-                        if (accessibles[k] == etat_dest) {
+                    for (int k = 0; k < A->nbr_etat; k++) {
+                        if (Acc.etats[k] == etat_dest) {
                             existe = true;
                             break;
                         }
                     }
                     if (!existe) {
-                        accessibles[nbr_acc] = etat_dest;
-                        nbr_acc++;
+                        Acc.etats[Acc.nbr_etat] = etat_dest;
+                        Acc.nbr_etat++;
                         nouveau_trouve = true;
                     }
                 }
@@ -363,52 +384,37 @@ void supprimerEtatsInaccessibles(Automate *A) {
         }
     } while (nouveau_trouve);
 
-    for (int i = 0; i < nbr_acc; i++) {//supprimer les etas inaccesibles du tableau des etats
-        A->etats[i] = accessibles[i];
-    }
-    A->nbr_etat = nbr_acc;
+    recopieEtats(A, Acc.etats, Acc.nbr_etat);
 
-    Transition trans_utiles[50];//tableau temporaire pour supprimer les transitions des etats inaccessibles
-    int nbr_t_utiles = 0;
     for (int i = 0; i < A->nbr_trans; i++) {
         bool dep_accessible = false;
-        for (int k = 0; k < nbr_acc; k++) {
-            if (A->transitions[i].etat_dep == accessibles[k]) { 
+        for (int k = 0; k < Acc.nbr_etat ; k++) {
+            if (A->transitions[i].etat_dep == Acc.etats[k]) { 
                 dep_accessible = true;
                 break;
             }
         }
         //si l'etat depart est accessible, on garde la transition
         if (dep_accessible) {
-            trans_utiles[nbr_t_utiles] = A->transitions[i];
-            nbr_t_utiles++;
+            Acc.transitions[Acc.nbr_trans] = A->transitions[i];
+            Acc.nbr_trans++;
         }
     }
-    for (int i = 0; i < nbr_t_utiles; i++) {// Remplacer les anciennes transitions
-        A->transitions[i] = trans_utiles[i];
-    }
-    A->nbr_trans = nbr_t_utiles;
-
-    int finaux_utiles[10];//de meme pour les etats finaux
-    int nbr_f_utiles = 0;
+    recopieTransition(A, Acc.transitions, Acc.nbr_trans);
     for (int i = 0; i < A->finc; i++) {
         bool est_accessible = false;
-        for (int k = 0; k < nbr_acc; k++) {
-            if (A->etat_finaux[i] == accessibles[k]) {
+        for (int k = 0; k < Acc.nbr_etat; k++) {
+            if (A->etat_finaux[i] == Acc.etats[k]) {
                 est_accessible = true;
                 break;
             }
         }
         if (est_accessible) {
-            finaux_utiles[nbr_f_utiles] = A->etat_finaux[i];
-            nbr_f_utiles++;
+            Acc.etat_finaux[Acc.finc] = A->etat_finaux[i];
+            Acc.finc++;
         }
     }
-    for (int i = 0; i < nbr_f_utiles; i++) {
-        A->etat_finaux[i] = finaux_utiles[i];
-    }
-    A->finc = nbr_f_utiles;
-
+    recopieEtatsFinaux(A, Acc.etat_finaux, Acc.finc);
 }
 // fonction supprime les epsilons dans une automate
 void supprimerEpsilons(Automate *A) {
@@ -442,9 +448,7 @@ void supprimerEpsilons(Automate *A) {
                     for (int k = 0; k < A->nbr_trans; k++) {
                         if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre[0] != 'E') {
                             if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre[0])) {
-                                nouvelles_trans[nbr_nouv].etat_dep = etat_actuel;
-                                nouvelles_trans[nbr_nouv].etat_arriv = A->transitions[k].etat_arriv;
-                                nouvelles_trans[nbr_nouv].lettre[0] = A->transitions[k].lettre[0];
+                                nouvelles_trans[nbr_nouv]= A->transitions[k];
                                 nbr_nouv++;
                             }
                         }
@@ -686,11 +690,7 @@ void construireAutomateThompson(const char *regex, Automate *A) {
 void FusionneEtatsInitialsFinals(Automate *p);
 Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
     int i, j;
-    C->nbr_etat = 0;
-    C->nbr_trans = 0;
-    C->nbr_alph = 0;
-    C->inic = 0;
-    C->finc = 0;
+    initAutomate(C);
     for(i = 0; i < A1->nbr_etat; i++) {
         C->etats[C->nbr_etat++] = A1->etats[i];
     }
