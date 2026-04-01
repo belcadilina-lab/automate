@@ -1,5 +1,4 @@
-#include <dependencies/structs.h>
-
+#include "structs.h"
 Automate concatAutomates(Automate *A1, Automate *A2,Automate *C);
 
 void UnionStructure(Automate* auto1, Automate* auto2, Automate* result);

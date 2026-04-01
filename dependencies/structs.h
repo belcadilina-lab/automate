@@ -15,3 +15,15 @@ typedef struct Automate{
     int etat_finaux[10];
 	int finc;//nbr des etats finaux
 }Automate;
+typedef struct Fragment { 
+    int debut; 
+    int fin; 
+} Fragment;
+typedef struct PileFragments { 
+    Fragment tab[100]; 
+    int sommet; 
+} PileFragments;
+typedef struct PileChar { 
+    char tab[100]; 
+    int sommet; 
+} PileChar;

@@ -1,4 +1,5 @@
 #include "structs.h"
+#include "stdbool.h"
 //fct permet ajouter ou fusionner des transitions
 void ajouterOuMajTransition(Automate *A, int dep, int arriv, const char *expr) {
     if (strlen(expr) == 0) return;//ignore les expressions vide

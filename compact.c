@@ -4,293 +4,6 @@
 #include <stdbool.h>
 #include "dependencies/structs.h"
 #include "dependencies/verification.h"
-void initAutomate(Automate* a1)
-{
-    a1->finc = 0;
-    a1->inic = 0;
-    a1->nbr_alph = 0;
-    a1->nbr_etat = 0;
-    a1->nbr_trans = 0;
-    //fonction copie des valeurs
-}
-void recopieEtats(Automate *A, int Etats[], int taille){
-    for(int i =0;i<taille; i++){
-        A->etats[i]= Etats[i];
-    }
-    A->nbr_etat = taille;
-}
-void recopieEtatsInitiale(Automate *A, int Etats[], int taille){
-    for(int i =0;i<taille; i++){
-        A->etat_initiaux[i]= Etats[i];
-    }
-    A->inic = taille;
-}
-void recopieEtatsFinaux(Automate *A, int Etats[], int taille){
-    for(int i =0;i<taille; i++){
-        A->etat_finaux[i]= Etats[i];
-    }
-    A->finc = taille;
-}
-void recopieTransition(Automate *A, Transition trans[], int taille){
-    for(int i =0;i<taille; i++){
-        // A->transitions[i].etat_dep= trans[i].etat_dep;
-        // A->transitions[i].etat_arriv= trans[i].etat_arriv;
-        // strncpy(A->transitions[i].lettre,trans[i].lettre,sizeof(trans[i].lettre));
-        A->transitions[i]=trans[i];
-    }
-    A->nbr_trans = taille;
-}
-bool rechercherEtat(Automate *protocol, int etatChar){
-	for(int i = 0 ; i< protocol->nbr_etat;i++){
-		if(protocol->etats[i] == etatChar ){
-			return true;
-		}
-	}
-	return false;
-}
-
-bool rechercherAlphabet(Automate *protocol, char etatChar){
-	for(int i = 0 ; i< protocol->nbr_alph;i++){
-		if(protocol->Alphabet[i] == etatChar ){
-			return true;
-		}
-	}
-	return false;
-}
-
-void readDot(Automate *protocol,char *fichier){
-	int i=0,inic,finc,src,dest;
-    char val,ligne[100], buff[20];
-	initAutomate(protocol);
-	FILE* f = fopen(fichier,"r");
-	if(f == NULL){
-		printf("Fichier introuvable, veuillez vous assurez de l'emplacement du fichier.");
-        return;
-	}
-	while(fgets(ligne, sizeof(ligne), f)){
-	    if(sscanf(ligne," %d -> %d [label=\"%c\"];",&src,&dest,&val) == 3){
-		//stockage des transitions
-			protocol->transitions[i].etat_dep = src;
-			protocol->transitions[i].etat_arriv = dest;
-			protocol->transitions[i].lettre[0] = val;
-			i++;
-		//stockage des etats
-		    if(protocol->nbr_etat < 20){
-			    if(rechercherEtat(protocol, src) == false){
-					protocol->etats[protocol->nbr_etat] = src;
-					protocol->nbr_etat++;
-			    }
-			    if(rechercherEtat(protocol, dest) == false){
-					protocol->etats[protocol->nbr_etat] = dest;
-					protocol->nbr_etat++;
-			    }
-            }
-		//stockage des alphabets
-		    if(protocol->nbr_alph < 8){
-			    if(rechercherAlphabet(protocol, val) == false && val != 'E'){
-					protocol->Alphabet[protocol->nbr_alph] = val;
-					protocol->nbr_alph++;
-			    }
-            }
-	    }
-    //stockage des etats initiaux et finaux
-	    else if(sscanf(ligne," init -> %d;", &src) == 1){
-			protocol->etat_initiaux[protocol->inic] = src;
-			protocol->inic++;
-	    }
-        else if(sscanf(ligne," %d -> %[^;];", &src,buff) == 2){
-		    if (strcmp(buff,"fin") != 0)
-                continue ;
-		    protocol->etat_finaux[protocol->finc] = src;
-		    protocol->finc++;
-	    }
-	    else continue;
-	}
-	protocol->nbr_trans = i;
-	fclose(f);
-}
- /* void UnionFichiers(const char* a1, const char* a2)
-{
-    Automate autom1;
-    Automate autom2;
-    FILE* U = fopen(a1,"r");
-    checkFile(U);
-    FILE* V = fopen(a2,"r");
-    checkFile(V);
-    FILE* W = fopen("src/resultat.dot","w");
-    checkFile(W);
-    readDot(&autom1,"src/automate1.dot");
-    readDot(&autom2,"src/automate2.dot");
-    fprintf(W, "digraph G {\n");
-    fprintf(W, "init [shape=point style=filled, fillcolor=white color=white ];\n");
-    fprintf(W, "fin [shape=point style=filled, fillcolor=white color=white];\n");
-    fprintf(W, "init -> 100;\n");
-    //stock les etats initiales du 1er automate et ses transitions   
-    for(int i = 0 ; i< autom1.inic ; i++)
-    fprintf(W, "100 -> %d [label=\"E\"];\n",autom1.etat_initiaux[i]);
-
-    for(int k = 0; k<autom1.nbr_trans ; k++)
-    {
-        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom1.transitions[k].etat_dep,autom1.transitions[k].etat_arriv,autom1.transitions[k].lettre[0]);    
-    }
-    //stock les etats initiales du 2eme automate et ses transitions
-    for(int i = 0 ; i< autom2.inic ; i++)
-    fprintf(W, "100 -> %d [label=\"E\"];\n",autom2.etat_initiaux[i]);
-
-    for(int k = 0; k<autom2.nbr_trans ; k++)
-    {
-        fprintf(W, "%d -> %d [label=\"%c\"] ;\n",autom2.transitions[k].etat_dep,autom2.transitions[k].etat_arriv,autom2.transitions[k].lettre[0]);    
-    }
-    //etats finaux
-
-    for(int i = 0 ; i< autom1.finc ; i++)
-    fprintf(W, "%d -> 200 [label=\"E\"];\n",autom1.etat_finaux[i]);
-
-
-    for(int i = 0 ; i< autom2.finc ; i++)
-    fprintf(W, "%d -> 200 [label=\"E\"];\n",autom2.etat_finaux[i]);
-    fprintf(W, "200 -> fin;\n");   
-    fprintf(W, "}");
-fclose(U);
-fclose(V);
-fclose(W);
-}
-*/ 
-void automateShow(Automate protocol){
-	int i;
-	printf("Voici la liste des etats :\n");
-	for( i = 0; i< protocol.nbr_etat ; i++){
-		printf("[%d] ",protocol.etats[i]);
-	}
-	printf("\nVoici la liste d'alphabet : \n");
-	for(i = 0; i< protocol.nbr_alph ; i++){
-		printf("[%c] ", protocol.Alphabet[i]);
-	}
-	printf("\nVoici la liste des transitions :\n");
-	for( i = 0; i< protocol.nbr_trans ; i++){
-		printf("[%d] -> %c -> [%d]\n",protocol.transitions[i].etat_dep,protocol.transitions[i].lettre[0],protocol.transitions[i].etat_arriv);
-	}
-	printf("\nVoici la liste des etats initiaux :\n");
-	for( i = 0; i< protocol.inic ; i++){
-		printf("[%d] ",protocol.etat_initiaux[i]);
-	}
-	printf("\nVoici la liste des etats finaux :\n");
-	for( i = 0; i< protocol.finc ; i++){
-		printf("[%d] ",protocol.etat_finaux[i]);
-	}
-    printf("\n");
-}
-void MaxTransitions(Automate *protocol){
-
-    int sorties[20] = {0};
-    int entrees[20] = {0};
-    int i,j;
-
-    // compter les transitions POUR CHAQUE ETAT
-    for(j = 0; j < protocol->nbr_trans; j++){
-
-        for(i = 0; i < protocol->nbr_etat; i++){
-
-            if(protocol->transitions[j].etat_dep == protocol->etats[i])
-                sorties[i]++;
-
-            if(protocol->transitions[j].etat_arriv == protocol->etats[i])
-                entrees[i]++;
-        }
-    }
-
-    int maxSort = 0, maxEntr = 0;
-
-    for(i = 0; i < protocol->nbr_etat; i++){
-        if(sorties[i] > maxSort)
-            maxSort = sorties[i];
-
-        if(entrees[i] > maxEntr)
-            maxEntr = entrees[i];
-    }
-
-    printf("Etats avec max transitions sortantes (%d): ", maxSort);
-    for(i = 0; i < protocol->nbr_etat; i++){
-        if(sorties[i] == maxSort)
-            printf("%d ", protocol->etats[i]);
-    }
-
-    printf("\nEtats avec max transitions entrantes (%d): ", maxEntr);
-    for(i = 0; i < protocol->nbr_etat; i++){
-        if(entrees[i] == maxEntr)
-            printf("%d ", protocol->etats[i]);
-    }
-
-    printf("\n");
-}
-void afficherEtatsAvecTransition(Automate *protocol, char lettre) {
-
-    printf("Transitions etiquetees par '%c' :\n", lettre);
-    bool found  =false;
-    for (int i = 0; i < protocol->nbr_etat; i++) {
-
-        bool aTransition = false;
-
-        for (int j = 0; j < protocol->nbr_trans; j++) {
-
-            if (protocol->transitions[j].etat_dep == protocol->etats[i] &&
-                protocol->transitions[j].lettre[0] == lettre) {
-
-                if (!aTransition) {
-                    printf("Etat [%d] -> ", protocol->etats[i]);
-                    aTransition = true;
-                    found = true;
-                }
-                printf("[%d] ", protocol->transitions[j].etat_arriv);
-            }
-        }
-        if (aTransition) {
-            printf("\n");
-        }
-    }
-    if (!found) {
-            printf("n'existe pas\n");
-        }
-}
-bool rechercherEtatFinale(Automate *protocol, int etatChar){
-	for(int i = 0 ; i< protocol->finc; i++){
-		if(protocol->etat_finaux[i] == etatChar ){
-			return true;
-		}
-	}
-		return false;
-
-}
-void sauvgarder(Automate a,const char* str){
-    int i;
-    FILE *f = fopen(str, "w");
-    checkFile(f);
-    fprintf(f, "digraph G {\n");
-    fprintf(f, "init [shape=point shape=point style=filled, fillcolor=white color=white];\n");
-    fprintf(f, "fin [shape=point shape=point style=filled, fillcolor=white color=white];\n");
-    for( i = 0; i < a.inic; i++){
-         fprintf(f, "init -> %d;\n", a.etat_initiaux[i]);
-    }
-    for(i = 0; i < a.nbr_trans; i++){
-        fprintf(f, "%d -> %d [label=\"%c\"];\n",a.transitions[i].etat_dep,a.transitions[i].etat_arriv,a.transitions[i].lettre[0]);
-    }
-    for(i = 0; i < a.finc; i++){
-        fprintf(f, "%d -> fin;\n", a.etat_finaux[i]);
-    }
-    fprintf(f, "}\n");
-    fclose(f);
-    printf("Fichier 'automate_utilisateur.dot' genere avec succes.\n");
-}
-
-//fct verifier qu'un transition n'existe deja dans le tableau des transition
-bool transitionExiste(Transition *tab, int nbr, int dep, int arriv, char lettre) {
-    for (int i = 0; i < nbr; i++) {
-        if (tab[i].etat_dep == dep && tab[i].etat_arriv == arriv && tab[i].lettre[0] == lettre) {
-            return true;
-        }
-    }
-    return false;
-}
 
 //calcul le epsilon-close de chaque etat
 void calculFermetureEpsilon(Automate *A, int etat, int *fermeture, int *taille) {
@@ -434,6 +147,7 @@ void supprimerEpsilons(Automate *A) {
     printf("Les transitions epsilon ont ete supprimees avec succes.\nAfficher l'automate pour y verifier.\n");
 }
 //changement pour travailler sur NFA
+<<<<<<< HEAD
 bool testerMot(Automate* autom, char * str){
     supprimerEpsilons(autom);
     supprimerEtatsInaccessibles(autom);
@@ -500,6 +214,287 @@ typedef struct PileChar {
     char tab[100]; 
     int sommet; 
 } PileChar;
+=======
+void initPileFragments(PileFragments *p) {
+    p->sommet = -1; 
+}
+void pushFragment(PileFragments *p, Fragment f){
+    p->tab[++(p->sommet)] = f; 
+}
+Fragment popFragment(PileFragments *p){
+    return p->tab[(p->sommet)--];
+}
+void initPileChar(PileChar *p){ 
+    p->sommet = -1; 
+}
+void pushChar(PileChar *p, char c){
+    p->tab[++(p->sommet)] = c; 
+}
+char popChar(PileChar *p) { 
+    return p->tab[(p->sommet)--]; 
+}
+char topChar(PileChar *p) { 
+    return p->tab[p->sommet]; 
+}
+bool pileCharVide(PileChar *p) { 
+    return p->sommet == -1; 
+}
+int nouvelEtat(){ 
+    static int compteur = 1; 
+    return compteur++; 
+}
+void ajouterEtatSiAbsent(Automate *A, int e) {
+    if (!rechercherEtat(A, e) && A->nbr_etat < 20) 
+    A->etats[A->nbr_etat++] = e;
+}
+
+void ajouterAlphabetSiAbsent(Automate *A, char c) {
+    if (c != 'E' && !rechercherAlphabet(A, c) && A->nbr_alph < 10)
+        A->Alphabet[A->nbr_alph++] = c;
+}
+
+void ajouterTransition(Automate *A, int dep, int arriv, char lettre) {
+    if (A->nbr_trans >= 50) 
+        return;
+    if(transitionExiste(A->transitions, A->nbr_trans, dep, arriv, lettre))
+        return;
+
+    A->transitions[A->nbr_trans].etat_dep = dep;
+    A->transitions[A->nbr_trans].etat_arriv = arriv;
+    A->transitions[A->nbr_trans].lettre[0] = lettre;
+    A->nbr_trans++;
+
+    ajouterEtatSiAbsent(A, dep);
+    ajouterEtatSiAbsent(A, arriv);
+    ajouterAlphabetSiAbsent(A, lettre);
+}
+//construction des fragement(automates)
+Fragment automateLettre(Automate *A, char lettre) {
+    int debut = nouvelEtat();
+    int fin = nouvelEtat();
+    Fragment f = {debut, fin};
+    ajouterTransition(A, f.debut, f.fin, lettre);
+    return f;
+}
+
+Fragment concatFragments(Automate *A, Fragment f1, Fragment f2) {
+    ajouterTransition(A, f1.fin, f2.debut, 'E');
+    Fragment f = {f1.debut, f2.fin};
+    return f;
+}
+
+Fragment unionFragments(Automate *A, Fragment f1, Fragment f2) {
+    int debut = nouvelEtat();
+    int fin = nouvelEtat();
+    Fragment f = {debut, fin};
+    ajouterTransition(A, f.debut, f1.debut, 'E');
+    ajouterTransition(A, f.debut, f2.debut, 'E');
+    ajouterTransition(A, f1.fin, f.fin, 'E');
+    ajouterTransition(A, f2.fin, f.fin, 'E');
+    return f;
+}
+
+Fragment etoileFragment(Automate *A, Fragment f) {
+    int debut = nouvelEtat();
+    int fin = nouvelEtat();
+    Fragment nf = {debut, fin};
+    ajouterTransition(A, nf.debut, f.debut, 'E'); 
+    ajouterTransition(A, nf.debut, nf.fin, 'E');  
+    ajouterTransition(A, f.fin, f.debut, 'E');    
+    ajouterTransition(A, f.fin, nf.fin, 'E'); 
+    return nf;
+}
+
+Fragment plusFragment(Automate *A, Fragment f) {
+    ajouterTransition(A, f.fin, f.debut, 'E');
+    Fragment nf = {f.debut, f.fin};
+    return nf;
+}
+
+void appliquerOperateur(PileFragments *pileF, PileChar *pileC, Automate *A) {
+    char op = popChar(pileC);
+    Fragment f2 = popFragment(pileF);
+    Fragment f1 = popFragment(pileF);
+    
+    if (op == '+') pushFragment(pileF, unionFragments(A, f1, f2));
+    else if (op == '.') pushFragment(pileF, concatFragments(A, f1, f2));
+}
+
+void construireAutomateThompson(const char *regex, Automate *A) {
+    PileFragments pileF; 
+    initPileFragments(&pileF);
+    PileChar pileC; 
+    initPileChar(&pileC);
+
+    for (int i = 0; regex[i] != '\0'; i++) {
+        char c = regex[i];
+
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) { 
+            pushFragment(&pileF, automateLettre(A, c));
+            if (!pileCharVide(&pileC) && topChar(&pileC) == '.') {
+                appliquerOperateur(&pileF, &pileC, A);
+            }
+        }
+        else if (c == '*' || c == '^') {
+            Fragment f = popFragment(&pileF);
+            pushFragment(&pileF, (c == '*') ? etoileFragment(A, f) : plusFragment(A, f));
+        }
+        else if (c == '+' || c == '(') {
+            pushChar(&pileC, c);
+        }
+        else if (c == ')') {
+            while (!pileCharVide(&pileC) && topChar(&pileC) != '(') {
+                appliquerOperateur(&pileF, &pileC, A);
+            }
+            if (!pileCharVide(&pileC)) popChar(&pileC); // Retire '('
+        }
+
+        // 5. Concaténation implicite (ex: "ab" devient "a.b")
+        char next = regex[i + 1];
+        if (next != '\0' && ( (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '*' || c == '^' || c == ')') && 
+                            ((next >= 'a' && next <= 'z') || (next >= '0' && next <= '9') || next == '(')) {
+            pushChar(&pileC, '.');
+        }
+    }
+
+    // Appliquer les opérateurs restants dans la pile
+    while (!pileCharVide(&pileC)) {
+        appliquerOperateur(&pileF, &pileC, A);
+    }
+
+    // Définition de l'état initial et final
+    Fragment finalF = popFragment(&pileF);
+    A->etat_initiaux[0] = finalF.debut;
+    A->inic = 1;
+    A->etat_finaux[0] = finalF.fin;
+    A->finc = 1;
+}
+void FusionneEtatsInitialsFinals(Automate *p);
+Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
+    int i, j;
+    initAutomate(C);
+    for(i = 0; i < A1->nbr_etat; i++) {
+        C->etats[C->nbr_etat++] = A1->etats[i];
+    }
+    for(i = 0; i < A2->nbr_etat; i++) {
+        if(!rechercherEtat(C, A2->etats[i])) {
+            C->etats[C->nbr_etat++] = A2->etats[i];
+        }
+    }
+    for(i = 0; i < A1->nbr_alph; i++) {
+        if(!rechercherAlphabet(C, A1->Alphabet[i]))
+            C->Alphabet[C->nbr_alph++] = A1->Alphabet[i];
+    }
+    for(i = 0; i < A2->nbr_alph; i++) {
+        if(!rechercherAlphabet(C, A2->Alphabet[i]))
+            C->Alphabet[C->nbr_alph++] = A2->Alphabet[i];
+    }
+    if(!rechercherAlphabet(C, 'E')) {
+        C->Alphabet[C->nbr_alph++] = 'E';
+    }
+
+    for(i = 0; i < A1->nbr_trans; i++) {
+        C->transitions[C->nbr_trans++] = A1->transitions[i];
+    }
+    for(i = 0; i < A2->nbr_trans; i++) {
+        C->transitions[C->nbr_trans++] = A2->transitions[i];
+    }
+    for(i = 0; i < A1->finc; i++) {
+        for(j = 0; j < A2->inic; j++) {
+            C->transitions[C->nbr_trans].etat_dep = A1->etat_finaux[i];
+            C->transitions[C->nbr_trans].etat_arriv = A2->etat_initiaux[j];
+            C->transitions[C->nbr_trans].lettre[0] = 'E'; 
+            C->nbr_trans++;
+        }
+    }
+
+    for(i = 0; i < A1->inic; i++) {
+        C->etat_initiaux[C->inic++] = A1->etat_initiaux[i];
+    }
+
+    for(i = 0; i < A2->finc; i++) {
+        C->etat_finaux[C->finc++] = A2->etat_finaux[i];
+    }
+    return *C;
+}
+//fct permet ajouter ou fusionner des transitions
+void ajouterOuMajTransition(Automate *A, int dep, int arriv, const char *expr) {
+    if (strlen(expr) == 0) return;//ignore les expressions vide
+
+    //cherche si une transition existe deja
+    for (int i = 0; i < A->nbr_trans; i++) {
+        if (A->transitions[i].etat_dep == dep && A->transitions[i].etat_arriv == arriv) {
+            //fusionne les 2 expressions qui on meme etat depart et meme etat arrive avec l'operateur +
+            char temp[200];
+            snprintf(temp, 200, "(%s+%s)", A->transitions[i].lettre, expr);//imprime l'expression dans temp sans depasser 200 cases
+            strncpy(A->transitions[i].lettre, temp, 200);
+            return;
+        }
+    }
+    //sinon, on cree une nouvelle transition
+    A->transitions[A->nbr_trans].etat_dep = dep;
+    A->transitions[A->nbr_trans].etat_arriv = arriv;
+    strncpy(A->transitions[A->nbr_trans].lettre, expr, 200);
+    A->nbr_trans++;
+}
+
+//fct fusion des etats a un seul etat initial et un seul etat final
+void FusionneEtatsInitialsFinals(Automate *A) {
+    int initial = 21;
+    int final = 22;
+    A->etats[A->nbr_etat++] = initial;
+    A->etats[A->nbr_etat++] = final;
+
+    //relier l'etat initial aux anciens états initiaux
+    for (int i = 0; i < A->inic; i++) {
+        ajouterOuMajTransition(A, initial, A->etat_initiaux[i], "E");
+    }
+    A->etat_initiaux[0] = initial;
+    A->inic = 1;
+
+    //relier les anciens états finaux au super-final
+    for (int i = 0; i < A->finc; i++) {
+        ajouterOuMajTransition(A, A->etat_finaux[i], final, "E");
+    }
+    A->etat_finaux[0] = final;
+    A->finc = 1;
+}
+//fonction pour effacer un etat et ses transitions liees
+void supprimerEtat(Automate *A, int etat_supp) {
+    int i = 0;
+    while (i < A->nbr_trans) {
+        if (A->transitions[i].etat_dep == etat_supp || A->transitions[i].etat_arriv == etat_supp) {
+            //on remplace la transition a supprimer par la derniere du tableau
+            A->transitions[i] = A->transitions[A->nbr_trans - 1];
+            A->nbr_trans--;
+        } else {
+            i++;
+        }
+    }
+}
+//fct permet extraire une expression entre deux etats
+void obtenirExpression(Automate *A, int dep, int arriv, char *resultat) {
+    strcpy(resultat, ""); //initilaiser par vide
+    for (int i = 0; i < A->nbr_trans; i++) {
+        if (A->transitions[i].etat_dep == dep && A->transitions[i].etat_arriv == arriv) {
+            strcpy(resultat, A->transitions[i].lettre);
+            return;
+        }
+    }
+}
+void copy(Automate* auto1, Automate* result)
+{
+    for(int i= 0; i<auto1->inic ; i++)
+    {
+        result->etat_initiaux[result->inic++] = auto1->etat_initiaux[i] ;
+        
+    }
+
+    for(int i= 0; i<auto1->finc ; i++)
+    {
+        result->etat_finaux[result->finc++] = auto1->etat_finaux[i] ;
+    }
+>>>>>>> 6f45b6af150f2f5b69e1869ae8a8ca35d7f2719f
 
 
 
