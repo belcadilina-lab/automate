@@ -1,6 +1,8 @@
 #include "structs.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
+#include "verification.h"
 void MaxTransitions(Automate *protocol){
 
     int sorties[20] = {0};

@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include "dependencies/structs.h"
 #include "dependencies/verification.h"
+#include "dependencies/lectureEtAffichage.h"
+#include "dependencies/utilities.h"
+#include "manipulation.h"
 
 //calcul le epsilon-close de chaque etat
 void calculFermetureEpsilon(Automate *A, int etat, int *fermeture, int *taille) {
