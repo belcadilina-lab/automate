@@ -1,3 +1,4 @@
+
 typedef struct Transition{
     int etat_dep;
     int etat_arriv;

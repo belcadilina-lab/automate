@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include "dependencies/operations.h"
-#include "dependencies/utilities.h"
-
-//structure pour représenter les nouvelles etats
+#include "operations.h"
+#include "utilities.h"
+#include "structs.h"
+#include "lectureEtAffichage.h"
+#include <stdlib.h>
 typedef struct {
     int etats[20]; 
     int nbr;          
     int id; 
 } EnsembleEtats;
+
+//structure pour représenter les nouvelles etats
 
 //ajoute un etat a un ensemble sans créer de doublon
 void ajouterEtat_EnsSansRep(EnsembleEtats *ens, int etat) {
@@ -123,4 +126,19 @@ void determiniserAutomate(Automate *nonD, Automate *D) {
             D->etat_finaux[D->finc++] = Ens_nouv[i].id;
         }
     }
+}
+
+void trois(Automate* a)
+{
+    printf("success");
+    Automate* aDet = malloc(sizeof(Automate));
+    Automate* aMin = malloc(sizeof(Automate));
+    initAutomate(aDet);
+    initAutomate(aMin);
+    determiniserAutomate(a,aDet);
+    sauvgarder(*aDet,"automateDeterministe.dot");
+    printf("success");
+    /* minimiser(aInit,aDet);
+    sauvgarder(*aDet,"../automateDeterminise.dot");   */  
+
 }
