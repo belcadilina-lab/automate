@@ -8,6 +8,7 @@
 #include "dependencies/utilities.h"
 #include "dependencies/manipulation.h"
 #include "dependencies/operations.h"
+#include "dependencies/optimisation.h"
 int menu(void){
 		int choice;
         printf("\n-----------AUTOMATE--------\n");

@@ -3,6 +3,7 @@
 
 void initAutomate(Automate* a1);
 void recopieEtats(Automate *A, int Etats[], int taille);
+void recopieAlphabet(Automate *A, int Alphabet[], int taille);
 void recopieEtatsInitiale(Automate *A, int Etats[], int taille);
 void recopieEtatsFinaux(Automate *A, int Etats[], int taille);
 void recopieTransition(Automate *A, Transition trans[], int taille);
