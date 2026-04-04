@@ -1,4 +1,5 @@
-
+#ifndef STRUCTS_H
+#define STRUCTS_H
 typedef struct Transition{
     int etat_dep;
     int etat_arriv;
@@ -28,3 +29,4 @@ typedef struct PileChar {
     char tab[100]; 
     int sommet; 
 } PileChar;
+#endif
