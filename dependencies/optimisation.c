@@ -281,3 +281,32 @@ Automate minimiserMoore(Automate *A) {
 
     return M;
 }
+
+// Fonction récursive pour générer les mots
+void genererMotsRec(Automate *A, int etat, char *mot_courant, int pos, FILE *f) {
+    if (pos >= 5) return;
+    if (estFinal(A, etat)) {
+        mot_courant[pos] = '\0';
+        fprintf(f, "%s\n", mot_courant);
+    }
+
+    for (int i = 0; i < A->nbr_trans; i++) {
+        if (A->transitions[i].etat_dep == etat) {
+            mot_courant[pos] = A->transitions[i].lettre[0];
+            genererMotsRec(A, A->transitions[i].etat_arriv, mot_courant, pos + 1, f);
+        }
+    }
+}
+
+// Fonction principale qui minimise d'abord l'automate, puis écrit les mots
+void ecrireMotsAutomateMinimal(Automate *A, const char *nom_fichier) {
+    Automate M = minimiserMoore(A);
+    FILE *f = fopen(nom_fichier, "w");
+    if (!f) {
+        printf("Erreur : impossible d'ouvrir le fichier %s\n", nom_fichier);
+        return;
+    }
+    char mot_courant[5 + 1];
+    genererMotsRec(&M, M.etat_initiaux[0], mot_courant, 0, f);
+    fclose(f);
+}

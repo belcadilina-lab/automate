@@ -167,6 +167,12 @@ int main(){
             trois(aInit);
             break;
             }
+            case 16:{
+                printf("Minimisation de l'automate...\n");
+                const char *nomFichier = "mots_reconnus.txt";
+                ecrireMotsAutomateMinimal(&a, nomFichier);
+                break;
+            }
             case 0 : printf("Fin du programme\n"); break;
             default : printf("Entrer un choix valide s'il vous plait!\n");
         }
