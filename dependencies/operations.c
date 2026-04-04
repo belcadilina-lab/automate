@@ -104,133 +104,94 @@ void genererRegexDepuisAutomate(Automate *A, char *regex) {
     }
     obtenirExpression(A, A->etat_initiaux[0], A->etat_finaux[0], regex);
 }
-Automate concatAutomates(Automate *A1, Automate *A2,Automate *C) {
+int maxEtat(Automate *A) {
+    int max = A->etats[0];
+    for(int i = 1; i < A->nbr_etat; i++) {
+        if(A->etats[i] > max)
+            max = A->etats[i];
+    }
+    return max;
+}
+
+Automate concatAutomates(Automate *A1, Automate *A2, Automate *C) {
     int i, j;
     initAutomate(C);
-    for(i = 0; i < A1->nbr_etat; i++) {
-        C->etats[C->nbr_etat++] = A1->etats[i];
+    // Copier A1
+    recopieAlphabet(C,A1->Alphabet,A1->nbr_alph);
+    recopieEtats(C,A1->etats,A1->nbr_etat);
+    recopieTransition(C,A1->transitions,A1->nbr_trans);
+    recopieEtatsInitiale(C,A1->etat_initiaux,A1->inic);
+    int offset = maxEtat(A1) + 1;
+
+    // Copier A2 avec décalage
+    for(i = 0; i < A2->nbr_etat; i++)
+        C->etats[C->nbr_etat++] = A2->etats[i] + offset;
+
+    for(i = 0; i < A2->nbr_trans; i++) {
+        C->transitions[C->nbr_trans].etat_dep = A2->transitions[i].etat_dep + offset;
+        C->transitions[C->nbr_trans].etat_arriv = A2->transitions[i].etat_arriv + offset;
+        strcpy(C->transitions[C->nbr_trans].lettre,A2->transitions[i].lettre);
+        C->nbr_trans++;
     }
-    for(i = 0; i < A2->nbr_etat; i++) {
-        if(!rechercherEtat(C, A2->etats[i])) {
-            C->etats[C->nbr_etat++] = A2->etats[i];
-        }
-    }
-    for(i = 0; i < A1->nbr_alph; i++) {
-        if(!rechercherAlphabet(C, A1->Alphabet[i]))
-            C->Alphabet[C->nbr_alph++] = A1->Alphabet[i];
-    }
+
+    // Alphabet A2
     for(i = 0; i < A2->nbr_alph; i++) {
         if(!rechercherAlphabet(C, A2->Alphabet[i]))
             C->Alphabet[C->nbr_alph++] = A2->Alphabet[i];
     }
-    if(!rechercherAlphabet(C, 'E')) {
-        C->Alphabet[C->nbr_alph++] = 'E';
-    }
 
-    for(i = 0; i < A1->nbr_trans; i++) {
-        C->transitions[C->nbr_trans++] = A1->transitions[i];
-    }
-    for(i = 0; i < A2->nbr_trans; i++) {
-        C->transitions[C->nbr_trans++] = A2->transitions[i];
-    }
+    // Ajouter epsilon
+    if(!rechercherAlphabet(C, 'E'))
+        C->Alphabet[C->nbr_alph++] = 'E';
+
+    // Transitions epsilon
     for(i = 0; i < A1->finc; i++) {
         for(j = 0; j < A2->inic; j++) {
             C->transitions[C->nbr_trans].etat_dep = A1->etat_finaux[i];
-            C->transitions[C->nbr_trans].etat_arriv = A2->etat_initiaux[j];
-            C->transitions[C->nbr_trans].lettre[0] = 'E'; 
+            C->transitions[C->nbr_trans].etat_arriv = A2->etat_initiaux[j] + offset;
+            strcpy(C->transitions[C->nbr_trans].lettre, "E");
             C->nbr_trans++;
         }
     }
 
-    for(i = 0; i < A1->inic; i++) {
-        C->etat_initiaux[C->inic++] = A1->etat_initiaux[i];
-    }
+    // Finaux
+    for(i = 0; i < A2->finc; i++)
+        C->etat_finaux[C->finc++] = A2->etat_finaux[i] + offset;
 
-    for(i = 0; i < A2->finc; i++) {
-        C->etat_finaux[C->finc++] = A2->etat_finaux[i];
-    }
     return *C;
 }
-void construireAutomateThompson(const char *regex, Automate *A) {
-    PileFragments pileF; 
-    initPileFragments(&pileF);
-    PileChar pileC; 
-    initPileChar(&pileC);
-
-    for (int i = 0; regex[i] != '\0'; i++) {
-        char c = regex[i];
-
-        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) { 
-            pushFragment(&pileF, automateLettre(A, c));
-            if (!pileCharVide(&pileC) && topChar(&pileC) == '.') {
-                appliquerOperateur(&pileF, &pileC, A);
-            }
-        }
-        else if (c == '*' || c == '^') {
-            Fragment f = popFragment(&pileF);
-            pushFragment(&pileF, (c == '*') ? etoileFragment(A, f) : plusFragment(A, f));
-        }
-        else if (c == '+' || c == '(') {
-            pushChar(&pileC, c);
-        }
-        else if (c == ')') {
-            while (!pileCharVide(&pileC) && topChar(&pileC) != '(') {
-                appliquerOperateur(&pileF, &pileC, A);
-            }
-            if (!pileCharVide(&pileC)) popChar(&pileC); // Retire '('
-        }
-
-        // 5. Concaténation implicite (ex: "ab" devient "a.b")
-        char next = regex[i + 1];
-        if (next != '\0' && ( (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '*' || c == '^' || c == ')') && 
-                            ((next >= 'a' && next <= 'z') || (next >= '0' && next <= '9') || next == '(')) {
-            pushChar(&pileC, '.');
-        }
-    }
-
-    // Appliquer les opérateurs restants dans la pile
-    while (!pileCharVide(&pileC)) {
-        appliquerOperateur(&pileF, &pileC, A);
-    }
-
-    // Définition de l'état initial et final
-    Fragment finalF = popFragment(&pileF);
-    A->etat_initiaux[0] = finalF.debut;
-    A->inic = 1;
-    A->etat_finaux[0] = finalF.fin;
-    A->finc = 1;
+void initPileAutomates(PileAutomates *p) {
+    p->sommet = -1;
 }
-//les piles
-void initPileFragments(PileFragments *p) {
-    p->sommet = -1; 
+
+void pushAutomate(PileAutomates *p, Automate A) {
+    p->tab[++(p->sommet)] = A;
 }
-void pushFragment(PileFragments *p, Fragment f){
-    p->tab[++(p->sommet)] = f; 
-}
-Fragment popFragment(PileFragments *p){
+
+Automate popAutomate(PileAutomates *p) {
     return p->tab[(p->sommet)--];
 }
-void initPileChar(PileChar *p){ 
-    p->sommet = -1; 
+void initPileChar(PileChar *p){
+    p->sommet = -1;
 }
 void pushChar(PileChar *p, char c){
-    p->tab[++(p->sommet)] = c; 
+    p->tab[++(p->sommet)] = c;
 }
-char popChar(PileChar *p) { 
-    return p->tab[(p->sommet)--]; 
+char popChar(PileChar *p) {
+    return p->tab[(p->sommet)--];
 }
-char topChar(PileChar *p) { 
-    return p->tab[p->sommet]; 
+char topChar(PileChar *p) {
+    return p->tab[p->sommet];
 }
-bool pileCharVide(PileChar *p) { 
-    return p->sommet == -1; 
+bool pileCharVide(PileChar *p) {
+    return p->sommet == -1;
 }
-int nouvelEtat(){ 
-    static int compteur = 1; 
-    return compteur++; 
+int nouvelEtat(){
+    static int compteur = 1;
+    return compteur++;
 }
 void ajouterEtatSiAbsent(Automate *A, int e) {
-    if (!rechercherEtat(A, e) && A->nbr_etat < 20) 
+    if (!rechercherEtat(A, e) && A->nbr_etat < 20)
     A->etats[A->nbr_etat++] = e;
 }
 
@@ -240,7 +201,7 @@ void ajouterAlphabetSiAbsent(Automate *A, char c) {
 }
 
 void ajouterTransition(Automate *A, int dep, int arriv, char lettre) {
-    if (A->nbr_trans >= 50) 
+    if (A->nbr_trans >= 50)
         return;
     if(transitionExiste(A->transitions, A->nbr_trans, dep, arriv, lettre))
         return;
@@ -254,56 +215,185 @@ void ajouterTransition(Automate *A, int dep, int arriv, char lettre) {
     ajouterEtatSiAbsent(A, arriv);
     ajouterAlphabetSiAbsent(A, lettre);
 }
-//construction des fragement(automates)
-Fragment automateLettre(Automate *A, char lettre) {
+Automate automateLettre(char lettre) {
+    Automate A;
+    initAutomate(&A);
+
     int debut = nouvelEtat();
     int fin = nouvelEtat();
-    Fragment f = {debut, fin};
-    ajouterTransition(A, f.debut, f.fin, lettre);
-    return f;
-}
 
-Fragment concatFragments(Automate *A, Fragment f1, Fragment f2) {
-    ajouterTransition(A, f1.fin, f2.debut, 'E');
-    Fragment f = {f1.debut, f2.fin};
-    return f;
-}
+    ajouterTransition(&A, debut, fin, lettre);
 
-Fragment unionFragments(Automate *A, Fragment f1, Fragment f2) {
+    A.etat_initiaux[0] = debut;
+    A.inic = 1;
+
+    A.etat_finaux[0] = fin;
+    A.finc = 1;
+
+    return A;
+}
+Automate etoileAutomate(Automate A) {
+    Automate C;
+    initAutomate(&C);
+
     int debut = nouvelEtat();
     int fin = nouvelEtat();
-    Fragment f = {debut, fin};
-    ajouterTransition(A, f.debut, f1.debut, 'E');
-    ajouterTransition(A, f.debut, f2.debut, 'E');
-    ajouterTransition(A, f1.fin, f.fin, 'E');
-    ajouterTransition(A, f2.fin, f.fin, 'E');
-    return f;
+    int i, j;
+
+    // Copier transitions de A
+    for (i = 0; i < A.nbr_trans; i++) {
+        ajouterTransition(&C,
+                          A.transitions[i].etat_dep,
+                          A.transitions[i].etat_arriv,
+                          A.transitions[i].lettre[0]);
+    }
+
+    // Nouvel initial -> initiaux de A
+    for (i = 0; i < A.inic; i++) {
+        ajouterTransition(&C, debut, A.etat_initiaux[i], 'E');
+    }
+
+    // Nouvel initial -> nouveau final (accepte epsilon)
+    ajouterTransition(&C, debut, fin, 'E');
+
+    // Finaux de A -> initiaux de A (boucle)
+    for (i = 0; i < A.finc; i++) {
+        for (j = 0; j < A.inic; j++) {
+            ajouterTransition(&C, A.etat_finaux[i], A.etat_initiaux[j], 'E');
+        }
+    }
+
+    // Finaux de A -> nouveau final
+    for (i = 0; i < A.finc; i++) {
+        ajouterTransition(&C, A.etat_finaux[i], fin, 'E');
+    }
+
+    C.etat_initiaux[0] = debut;
+    C.inic = 1;
+
+    C.etat_finaux[0] = fin;
+    C.finc = 1;
+
+    return C;
 }
 
-Fragment etoileFragment(Automate *A, Fragment f) {
+Automate plusAutomate(Automate A) {
+    Automate C;
+    initAutomate(&C);
+
     int debut = nouvelEtat();
     int fin = nouvelEtat();
-    Fragment nf = {debut, fin};
-    ajouterTransition(A, nf.debut, f.debut, 'E'); 
-    ajouterTransition(A, nf.debut, nf.fin, 'E');  
-    ajouterTransition(A, f.fin, f.debut, 'E');    
-    ajouterTransition(A, f.fin, nf.fin, 'E'); 
-    return nf;
+    int i, j;
+
+    // Copier transitions de A
+    for (i = 0; i < A.nbr_trans; i++) {
+        ajouterTransition(&C,
+                          A.transitions[i].etat_dep,
+                          A.transitions[i].etat_arriv,
+                          A.transitions[i].lettre[0]);
+    }
+
+    // Nouvel initial -> initiaux de A
+    for (i = 0; i < A.inic; i++) {
+        ajouterTransition(&C, debut, A.etat_initiaux[i], 'E');
+    }
+
+    // Finaux de A -> initiaux de A (boucle)
+    for (i = 0; i < A.finc; i++) {
+        for (j = 0; j < A.inic; j++) {
+            ajouterTransition(&C, A.etat_finaux[i], A.etat_initiaux[j], 'E');
+        }
+    }
+
+    // Finaux de A -> nouveau final
+    for (i = 0; i < A.finc; i++) {
+        ajouterTransition(&C, A.etat_finaux[i], fin, 'E');
+    }
+
+    C.etat_initiaux[0] = debut;
+    C.inic = 1;
+
+    C.etat_finaux[0] = fin;
+    C.finc = 1;
+
+    return C;
 }
 
-Fragment plusFragment(Automate *A, Fragment f) {
-    ajouterTransition(A, f.fin, f.debut, 'E');
-    Fragment nf = {f.debut, f.fin};
-    return nf;
-}
-
-void appliquerOperateur(PileFragments *pileF, PileChar *pileC, Automate *A) {
+void appliquerOperateur(PileAutomates *pileA, PileChar *pileC) {
     char op = popChar(pileC);
-    Fragment f2 = popFragment(pileF);
-    Fragment f1 = popFragment(pileF);
-    
-    if (op == '+') pushFragment(pileF, unionFragments(A, f1, f2));
-    else if (op == '.') pushFragment(pileF, concatFragments(A, f1, f2));
+    Automate A2 = popAutomate(pileA);
+    Automate A1 = popAutomate(pileA);
+    Automate c,r;
+    if (op == '+'){
+       UnionStructure(&A1, &A2, &c);  // appelle la fonction, elle remplit 'c'
+        pushAutomate(pileA, c);} 
+    else if (op == '.'){
+       concatAutomates(&A1, &A2, &r); // appelle la fonction, elle remplit 'r'
+        pushAutomate(pileA, r);
+}
+}
+
+void construireAutomateThompson(const char *regex, Automate *A) {
+    PileAutomates pileA;
+    initPileAutomates(&pileA);
+
+    PileChar pileC;
+    initPileChar(&pileC);
+
+    for (int i = 0; regex[i] != '\0'; i++) {
+        char c = regex[i];
+
+        // Si c'est une lettre ou un chiffre
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+            pushAutomate(&pileA, automateLettre(c));
+
+            // Si concaténation implicite déjà empilée
+            if (!pileCharVide(&pileC) && topChar(&pileC) == '.') {
+                appliquerOperateur(&pileA, &pileC);
+            }
+        }
+
+        // Etoile ou plus
+        else if (c == '*' || c == '^') {
+            Automate temp = popAutomate(&pileA);
+
+            if (c == '*')
+                pushAutomate(&pileA, etoileAutomate(temp));
+            else
+                pushAutomate(&pileA, plusAutomate(temp));
+        }
+
+        // Union ou parenthèse ouvrante
+        else if (c == '+' || c == '(') {
+            pushChar(&pileC, c);
+        }
+
+        // Parenthèse fermante
+        else if (c == ')') {
+            while (!pileCharVide(&pileC) && topChar(&pileC) != '(') {
+                appliquerOperateur(&pileA, &pileC);
+            }
+            if (!pileCharVide(&pileC)) {
+                popChar(&pileC); // retire '('
+            }
+        }
+
+        // Concaténation implicite
+        char next = regex[i + 1];
+        if (next != '\0' &&
+            (((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '*' || c == '^' || c == ')')) &&
+            (((next >= 'a' && next <= 'z') || (next >= '0' && next <= '9') || next == '('))) {
+            pushChar(&pileC, '.');
+        }
+    }
+
+    // Appliquer les opérateurs restants
+    while (!pileCharVide(&pileC)) {
+        appliquerOperateur(&pileA, &pileC);
+    }
+
+    // L'automate final
+    *A = popAutomate(&pileA);
 }
 void supprimerEpsilons(Automate *A) {
     Transition nouvelles_trans[100]; // Tableau temporaire pour stocker les nouvelles transitions
