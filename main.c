@@ -136,12 +136,13 @@ int main(){
                 break;
             }
             case 12:{
-                if(a.nbr_etat == 0){
+                if(a.nbr_trans == 0){
                     printf("Erreur : l'automate est vide ou mal charge !\n");
                     break;
                 }
                 char regex[200] = "";
-                genererRegexDepuisAutomate(&a, regex);
+                Automate d = a;
+                genererRegexDepuisAutomate(&d, regex);
                 printf("voici l'expression reguliere du l'automate:\n");
                 printf("%s\n\n", regex);
                 break;

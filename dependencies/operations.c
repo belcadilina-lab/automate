@@ -427,6 +427,7 @@ void supprimerEpsilons(Automate *A) {
                         if (A->transitions[k].etat_dep == etat_p && A->transitions[k].lettre[0] != 'E') {
                             if (!transitionExiste(nouvelles_trans, nbr_nouv, etat_actuel, A->transitions[k].etat_arriv, A->transitions[k].lettre[0])) {
                                 nouvelles_trans[nbr_nouv]= A->transitions[k];
+                                nouvelles_trans[nbr_nouv].etat_dep = etat_actuel;
                                 nbr_nouv++;
                             }
                         }
@@ -459,7 +460,7 @@ void supprimerEtatsInaccessibles(Automate *A) {
                     int etat_dest = A->transitions[j].etat_arriv;
                     
                     bool existe = false;//verifier que etat_dest n'est pas deja accessible
-                    for (int k = 0; k < A->nbr_etat; k++) {
+                    for (int k = 0; k < Acc.nbr_etat; k++) {
                         if (Acc.etats[k] == etat_dest) {
                             existe = true;
                             break;

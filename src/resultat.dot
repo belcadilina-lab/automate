@@ -1,6 +1,9 @@
-digraph{
+digraph G {
 init [shape=point shape=point style=filled, fillcolor=white color=white];
 fin [shape=point shape=point style=filled, fillcolor=white color=white];
 init -> 0;
-1 -> fin;
+0 -> 1 [label="a"];
+1 -> 2 [label="a"];
+2 -> 3 [label="b"];
+3 -> fin;
 }

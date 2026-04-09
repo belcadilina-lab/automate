@@ -7,3 +7,4 @@ Automate minimiserMoore(Automate *A);
 void genererMotsRec(Automate *A, int etat, char *mot_courant, int pos, FILE *f);
 void ecrireMotsAutomateMinimal(Automate *A, const char *nom_fichier);
 void produitAutomates(Automate *A1, Automate *A2, Automate *C);
+void supprimerEtatsMorts(Automate *A);
